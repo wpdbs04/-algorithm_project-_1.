@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL 기반 알고리즘 시각화 툴</title>
+    <style>
+        /* 모든 요소에 box-sizing 적용 (레이아웃 삐져나옴 방지) */
+        * {
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-color: #1e1e2e;
+            --panel-bg: #282a36;
+            --text-color: #f8f8f2;
+            --accent: #bd93f9;
+            --highlight: #50fa7b;
+            --start-color: #ffb86c;
+            --end-color: #ff5555;
+            --path-color: #8be9fd;
+            --user-color: #ff79c6;
+        }
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Pretendard', -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* 전체 페이지 스크롤 방지 */
+        }
+        header {
+            padding: 20px;
+            background-color: var(--panel-bg);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        header input {
+            width: 450px;
+            padding: 10px 15px;
+            font-size: 16px;
+            border: 2px solid #44475a;
+            border-radius: 8px;
+            background-color: var(--bg-color);
+            color: white;
+            outline: none;
+        }
+        header input:focus { border-color: var(--accent); }
+        header button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--accent);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        header button:hover { background-color: #d6b4fc; }
+        
+        .container {
+            display: flex;
+            flex: 1;
+            position: relative;
+            overflow: hidden; /* 패널 내부 스크롤 활성화를 위한 제한 */
+        }
+        .canvas-container {
+            flex: 2;
+            position: relative;
+            border-right: 2px solid var(--panel-bg);
+            background-color: #1e1e2e;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .info-panel {
+            flex: 1;
+            background-color: var(--panel-bg);
+            padding: 25px;
+            height: 100%; /* 부모 높이에 맞춤 */
+            overflow-y: auto; /* 내용이 넘치면 세로 스크롤 생성 */
+        }
+        
+        /* 우측 패널 스크롤바 디자인 */
+        .info-panel::-webkit-scrollbar { width: 8px; }
+        .info-panel::-webkit-scrollbar-thumb { background: #6272a4; border-radius: 4px; }
+        .info-panel::-webkit-scrollbar-track { background: var(--panel-bg); }
+        
+        .info-box {
+            background-color: var(--bg-color);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--accent);
+        }
+        .info-box:last-child {
+            margin-bottom: 40px; /* 마지막 여백 확보 */
+        }
+        .info-box.user-box { border-left-color: var(--user-color); }
+        
+        .info-box h3 { margin-top: 0; color: var(--accent); font-size: 17px; }
+        .info-box.user-box h3 { color: var(--user-color); }
+        
+        ul { padding-left: 20px; margin-top: 10px; margin-bottom: 5px; }
+        li { margin-bottom: 10px; line-height: 1.5; font-size: 14px; }
+        .tag {
+            display: inline-block;
+            background-color: #44475a;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin: 2px;
+        }
+
+        #tooltip {
+            position: absolute;
+            background: rgba(40, 42, 54, 0.95);
+            border: 1px solid var(--accent);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            max-width: 300px;
+            font-size: 13px;
+        }
+        #tooltip h4 { margin: 0 0 8px 0; color: var(--highlight); font-size: 15px; }
+        #tooltip p { margin: 4px 0; line-height: 1.4; color: #f8f8f2; }
+        .user-metric { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #6272a4; color: var(--user-color); font-weight: bold; }
+        #tooltip .targets { margin-top: 8px; font-size: 12px; color: #8be9fd; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <input type="text" id="urlInput" placeholder="예: danawa.com, youtube.com, map.naver.com" value="www.youtube.com">
+        <button onclick="startSimulation()">알고리즘 시각화 실행</button>
+    </header>
+
+    <div class="container">
+        <div class="canvas-container">
+            <canvas id="vizCanvas"></canvas>
+            <div id="tooltip"></div>
+        </div>
+        <div class="info-panel" id="infoPanel">
+            <h2>분석 대기 중...</h2>
+            <p>상단에 사이트 주소를 입력하고 실행 버튼을 눌러주세요.</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('vizCanvas');
+        const ctx = canvas.getContext('2d');
+        const tooltip = document.getElementById('tooltip');
+        
+        let nodes = [];
+        let edges = [];
+        let mainPathEdges = [];
+        let hoveredNode = null;
+        let animationFrame;
+        let time = 0;
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function hashCode(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = (hash << 5) - hash + str.charCodeAt(i);
+                hash |= 0; 
+            }
+            return Math.abs(hash);
+        }
+
+        // 사이트 도메인에 맞춰 실시간으로 가상의 최신 유저 데이터를 생성하는 로직
+        function generateLiveUserData(domain) {
+            const date = new Date();
+            const timeStr = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}.${date.getMilliseconds()}`;
+            const sessionId = "SESS-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+            
+            // 도메인 성격에 따른 관심사 풀 동적 할당
+            let interestPool = [];
+
+            if (domain.includes('youtube.com') || domain.includes('youtu.be')) {
+                interestPool = ["IT/Tech 튜토리얼 영상", "게임 실황 하이라이트", "메카닉/피규어 리뷰", "음악 플레이리스트", "일상 브이로그", "영화 썸네일 클릭", "알고리즘 코딩 테스트"];
+            } else if (domain.includes('cafe.naver') || domain.includes('reddit')) {
+                interestPool = ["게임 공략 게시판 체류", "중고 거래 키워드 알림", "자기계발 스터디 모집글", "취미/수집품 공유글", "유머/베스트글 눈팅", "질문/답변 게시판"];
+            } else if (domain.includes('danawa') || domain.includes('shop') || domain.includes('coupang')) {
+                interestPool = ["최신 CPU/GPU 부품 비교", "스마트폰 악세사리 장바구니", "한정판 피규어/굿즈 검색", "게이밍 기어 특가", "생필품 정기배송", "가전제품 리뷰 확인"];
+            } else if (domain.includes('map.naver') || domain.includes('maps.google')) {
+                interestPool = ["대학교 캠퍼스 최단 경로", "맛집/카페 방문자 리뷰", "대중교통 버스 도착 시간", "주차장/주유소 위치", "퇴근길 정체 구간 우회", "자전거 도로망"];
+            } else if (domain.includes('github.com')) {
+                interestPool = ["오픈소스 Issue 기여", "Java 아키텍처 레포지토리", "C/C++ 시스템 콜 분석", "웹 프론트엔드 템플릿", "Markdown 문서화", "CI/CD 자동화 파이프라인"];
+            } else {
+                interestPool = ["최신 뉴스 트렌드 검색", "IT 기술 동향 아티클", "금융/주식/경제 지표", "라이프스타일 매거진 구독", "일상 블로그 체류", "전문 지식 검색 쿼리"];
+            }
+            
+            // 무작위로 섞어 현재 세션 유저의 주요 데이터 2개 추출
+            let shuffled = interestPool.sort(() => 0.5 - Math.random());
+            let topInterest1 = shuffled[0];
+            let topInterest2 = shuffled[1];
+            
+            let weight1 = Math.floor(Math.random() * 20 + 80); // 80~99%
+            let weight2 = Math.floor(Math.random() * 30 + 50); // 50~79%
+            let latency = Math.floor(Math.random() * 40 + 10); // 10~50ms
+
+            return {
+                sessionId: sessionId,
+                timeStr: timeStr,
+                locationInfo: `임의 할당 IP (라우팅 홉: ${Math.floor(Math.random() * 5 + 3)} 거침)`,
+                deviceInfo: `Client Device (네트워크 응답: ${latency}ms)`,
+                interestWeights: `1순위 [${topInterest1}] ${weight1}% | 2순위 [${topInterest2}] ${weight2}%`,
+                recentAction: `${Math.floor(Math.random() * 59 + 1)}초 전 마지막 인터랙션(클릭/스크롤) 발생`
+            };
+        }
+
+        // 절차적 그래프 노드 및 유저 데이터 매핑 생성
+        function generateDynamicNodes(domain, hash, liveUser) {
+            let seed = hash; 
+            function rand() {
+                let x = Math.sin(seed++) * 10000;
+                return x - Math.floor(x);
+            }
+
+            const layersCount = 3 + Math.floor(rand() * 4);
+            const dynamicNodes = [];
+            
+            const termsL1 = ["API Gateway", "WAF 방화벽", "Load Balancer", "Edge Server", "Traffic Router"];
+            const termsL2 = ["Session Store", "Microservice A", "Auth Server", "Data Parser", "Query Builder"];
+            const termsL3 = ["Search Engine", "RecSys Model", "DB Aggregator", "Vector DB", "Index Server"];
+            const termsL4 = ["Ranking Logic", "Trend Analyzer", "Content Filter", "Data Formatter", "CDN Cache"];
+
+            dynamicNodes.push({ 
+                layer: 0, label: "Client Req", 
+                detail: `[${domain}] 서버 인바운드 요청 수신`,
+                userMetric: `[세션: ${liveUser.sessionId}] 단말기 초기 접속 핸드쉐이크 요청`
+            });
+
+            for (let l = 1; l < layersCount; l++) {
+                const nodeCount = 2 + Math.floor(rand() * 5);
+                let pool = (l === 1) ? termsL1 : (l === layersCount - 1) ? termsL4 : (rand() > 0.5 ? termsL2 : termsL3);
+
+                for (let n = 0; n < nodeCount; n++) {
+                    let metricRandom = Math.random();
+                    let metricTxt = "";
+                    if (metricRandom < 0.3) metricTxt = `현재 가중치 ${(Math.random() * 0.5 + 0.5).toFixed(2)} 반영 연산 중`;
+                    else if (metricRandom < 0.6) metricTxt = `캐시 메모리 점유율: ${Math.floor(Math.random() * 40 + 10)}% 할당됨`;
+                    else metricTxt = `실시간 트래픽 우선순위 큐(PQ) 처리 중...`;
+
+                    dynamicNodes.push({
+                        layer: l,
+                        label: pool[Math.floor(rand() * pool.length)] + `_${n+1}`,
+                        detail: `${domain} 백엔드 L${l} 계층 트래픽 및 데이터 연산 처리`,
+                        userMetric: metricTxt
+                    });
+                }
+            }
+            dynamicNodes.push({ 
+                layer: layersCount, label: "Response", 
+                detail: "최종 연산 결과 클라이언트 반환",
+                userMetric: `알고리즘 처리 완료 (소요시간: ${Math.floor(Math.random() * 100 + 20)}ms)`
+            });
+            return dynamicNodes;
+        }
+
+        function getAlgorithmProfile(rawUrl) {
+            const lowerUrl = rawUrl.toLowerCase();
+            let domain = lowerUrl.replace(/^https?:\/\//, '').split(/[/?#]/)[0] || "unknown.com";
+            const hash = hashCode(domain);
+            
+            // 입력된 도메인을 파라미터로 넘겨 알맞은 유저 데이터를 가져옵니다.
+            const liveUser = generateLiveUserData(domain);
+            
+            let profile = {
+                title: "", algorithm: "", tags: [], siteInfo: [], nodesData: [],
+                userDataInfo: [
+                    `<b>실시간 타임스탬프:</b> ${liveUser.timeStr}`,
+                    `<b>할당된 Session ID:</b> ${liveUser.sessionId}`,
+                    `<b>연결 단말기 상태:</b> ${liveUser.locationInfo} <br/> └ ${liveUser.deviceInfo}`,
+                    `<b>알고리즘 가중치 타겟:</b> <br/> └ ${liveUser.interestWeights}`,
+                    `<b>활성도 지표:</b> ${liveUser.recentAction}`
+                ]
+            };
+
+            if (domain.includes('youtube.com') || lowerUrl.includes('youtu.be')) {
+                profile.title = `${domain} (콘텐츠 추천 알고리즘)`;
+                profile.algorithm = "수십억 개의 영상 메타데이터를 처리하는 Two-Tower 추천 모델 (DNN)";
+                profile.tags = ["DNN 추천", "리텐션 최적화", "A/B 테스트"];
+                profile.siteInfo = [
+                    "<b>후보군 생성 (Candidate Gen):</b> 글로벌 시청 기록을 분석하여 수백만 개 중 연관성 높은 수백 개 영상 1차 추출",
+                    "<b>랭킹 평가 (Ranking):</b> 썸네일 클릭률(CTR), 예상 시청 지속 시간(Retention), 좋아요 비율로 가중치 연산",
+                    "<b>개인화 분산:</b> 특정 주제에 갇히는 필터 버블(Filter Bubble)을 방지하기 위한 탐색적 노이즈 투입"
+                ];
+            } else if (domain.includes('cafe.naver') || domain.includes('reddit')) {
+                profile.title = `${domain} (커뮤니티 클러스터링)`;
+                profile.algorithm = "텍스트 토픽 모델링(LDA) 및 협업 필터링 기반 게시물 노출 시스템";
+                profile.tags = ["협업 필터링", "토픽 모델링", "트렌드 분석"];
+                profile.siteInfo = [
+                    "<b>데이터 수집:</b> 게시글 리젠율, 댓글 활성도, 실시간 조회수 급상승 데이터 집계",
+                    "<b>사용자 반응 분석:</b> 체류 시간 및 사용자 간 상호작용(좋아요) 기반 가중치 부여",
+                    "<b>군집화 모델:</b> 특정 카테고리 유저들의 교차 활동 내역 분석 후 연관 커뮤니티 추천"
+                ];
+            } else if (domain.includes('map.naver') || domain.includes('maps.google')) {
+                profile.title = `${domain} (실시간 길찾기)`;
+                profile.algorithm = "도로망 노드 데이터 기반 다익스트라(Dijkstra) 및 A* 경로 탐색";
+                profile.tags = ["다익스트라", "A* 알고리즘", "트래픽 분석"];
+                profile.siteInfo = [
+                    "<b>교통 트래픽 수집:</b> 실시간 교통 상황 및 이용자 군집 이동 속도를 통한 정체 구간 판단",
+                    "<b>가중치 갱신(Relaxation):</b> 최단 거리, 최소 시간 목표에 따른 간선 가중치 실시간 재계산",
+                    "<b>공간 데이터베이스:</b> 복잡한 교차로 및 노선을 처리하는 지리정보시스템(GIS) 최적화"
+                ];
+            } else if (domain.includes('danawa') || domain.includes('shop') || domain.includes('coupang')) {
+                profile.title = `${domain} (상품 매칭 및 가격 비교)`;
+                profile.algorithm = "분산 검색 엔진(Elasticsearch) 기반 다차원 필터링 및 추천 시스템";
+                profile.tags = ["가격 크롤링", "검색 인덱스", "추천 알고리즘"];
+                profile.siteInfo = [
+                    "<b>데이터 크롤링:</b> 오픈마켓 및 벤더사 API 실시간 가격/재고 동기화",
+                    "<b>다차원 인덱싱:</b> 스펙, 가격대별 교차 검색을 위한 역색인(Inverted Index) 구축",
+                    "<b>사용자 리뷰 처리:</b> 자연어 처리(NLP)를 통한 상품 감성 분석(긍정/부정) 랭킹 보정"
+                ];
+            } else {
+                profile.title = `${domain} (네트워크 토폴로지)`;
+                profile.algorithm = "로드 밸런싱 및 마이크로서비스 백엔드 분산 아키텍처";
+                profile.tags = ["로드 밸런싱", "CDN", "마이크로서비스"];
+                profile.siteInfo = [
+                    "<b>트래픽 분산:</b> 입력된 도메인에 대한 대규모 접속 요청을 처리하기 위한 L7 로드 밸런서 동작",
+                    "<b>콘텐츠 전송:</b> 정적 리소스(이미지, CSS 등) 제공을 위한 엣지(Edge) 캐시 서버 분석",
+                    "<b>API 라우팅:</b> 클라이언트 요청 파라미터 기반 마이크로서비스 동적 할당"
+                ];
+            }
+            
+            profile.nodesData = generateDynamicNodes(domain, hash, liveUser);
+            return profile;
+        }
+
+        // 시뮬레이션 실행 (클릭 시마다 완전히 새롭게 데이터 및 네트워크 갱신)
+        function startSimulation() {
+            const url = document.getElementById('urlInput').value;
+            if (!url) return;
+
+            cancelAnimationFrame(animationFrame);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            tooltip.style.opacity = 0;
+            
+            const profile = getAlgorithmProfile(url);
+            updateInfoPanel(profile);
+            
+            nodes = [];
+            edges = [];
+            mainPathEdges = [];
+            
+            const layers = profile.nodesData.reduce((max, node) => Math.max(max, node.layer), 0);
+            const layerCounts = Array(layers + 1).fill(0);
+            profile.nodesData.forEach(n => layerCounts[n.layer]++);
+            
+            const widthStep = (canvas.width - 250) / (layers > 0 ? layers : 1);
+            const currentLayerIndex = Array(layers + 1).fill(0);
+
+            profile.nodesData.forEach((data, index) => {
+                const totalInLayer = layerCounts[data.layer];
+                const heightStep = (canvas.height - 150) / totalInLayer;
+                const x = 120 + data.layer * widthStep;
+                const y = 75 + heightStep * 0.5 + currentLayerIndex[data.layer] * heightStep;
+                
+                let type = "normal";
+                if (data.layer === 0) type = "start";
+                if (data.layer === layers) type = "end";
+
+                nodes.push({
+                    id: index, x: x, y: y,
+                    layer: data.layer, label: data.label,
+                    detail: data.detail, userMetric: data.userMetric, type: type, connectedTo: []
+                });
+                currentLayerIndex[data.layer]++;
+            });
+
+            // 실행할 때마다 랜덤 변수를 추가하여 네트워크 간선 연결을 다르게 구성
+            let edgeSeed = hashCode(url) + Math.random(); 
+            function edgeRand() {
+                let x = Math.sin(edgeSeed++) * 10000;
+                return x - Math.floor(x);
+            }
+
+            for (let i = 0; i < nodes.length; i++) {
+                const nextLayerNodes = nodes.filter(n => n.layer === nodes[i].layer + 1);
+                if (nextLayerNodes.length === 0) continue;
+
+                const guaranteedTarget = nextLayerNodes[Math.floor(edgeRand() * nextLayerNodes.length)];
+                edges.push({ u: i, v: nodes.indexOf(guaranteedTarget) });
+                nodes[i].connectedTo.push(guaranteedTarget.label);
+
+                nextLayerNodes.forEach(target => {
+                    if (target !== guaranteedTarget && edgeRand() > 0.4) {
+                        edges.push({ u: i, v: nodes.indexOf(target) });
+                        nodes[i].connectedTo.push(target.label);
+                    }
+                });
+            }
+
+            let currentNode = nodes.find(n => n.layer === 0);
+            while (currentNode && currentNode.layer < layers) {
+                const connectedTargetIds = edges.filter(e => e.u === currentNode.id).map(e => e.v);
+                if (connectedTargetIds.length > 0) {
+                    const nextId = connectedTargetIds[Math.floor(edgeRand() * connectedTargetIds.length)];
+                    mainPathEdges.push({ u: currentNode.id, v: nextId });
+                    currentNode = nodes[nextId];
+                } else break;
+            }
+
+            animateGraph();
+        }
+
+        function animateGraph() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            time += 0.05;
+
+            edges.forEach(edge => {
+                const u = nodes[edge.u], v = nodes[edge.v];
+                const isHovered = hoveredNode && (hoveredNode.id === u.id || hoveredNode.id === v.id);
+                ctx.beginPath();
+                ctx.moveTo(u.x, u.y);
+                ctx.lineTo(v.x, v.y);
+                ctx.strokeStyle = isHovered ? "var(--highlight)" : "rgba(68, 71, 90, 0.4)";
+                ctx.lineWidth = isHovered ? 2 : 1;
+                ctx.stroke();
+            });
+
+            mainPathEdges.forEach(edge => {
+                const u = nodes[edge.u], v = nodes[edge.v];
+                ctx.beginPath();
+                ctx.moveTo(u.x, u.y);
+                ctx.lineTo(v.x, v.y);
+                ctx.strokeStyle = "var(--path-color)";
+                ctx.lineWidth = 3;
+                ctx.setLineDash([10, 10]);
+                ctx.lineDashOffset = -time * 20;
+                ctx.stroke();
+                ctx.setLineDash([]);
+            });
+
+            nodes.forEach(node => {
+                const isHovered = hoveredNode && hoveredNode.id === node.id;
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, isHovered ? 12 : 8, 0, Math.PI * 2);
+                
+                if (node.type === "start") {
+                    ctx.fillStyle = "var(--start-color)";
+                    ctx.shadowColor = "var(--start-color)";
+                } else if (node.type === "end") {
+                    ctx.fillStyle = "var(--end-color)";
+                    ctx.shadowColor = "var(--end-color)";
+                } else {
+                    ctx.fillStyle = isHovered ? "var(--highlight)" : "#6272a4";
+                    ctx.shadowColor = "var(--highlight)";
+                }
+                
+                ctx.shadowBlur = (isHovered || node.type !== "normal") ? 15 : 0;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                ctx.fillStyle = isHovered ? "#ffffff" : "#8ba5b0";
+                ctx.font = isHovered ? "bold 13px Pretendard" : "12px Pretendard";
+                ctx.fillText(node.label, node.x - 30, node.y - 15);
+                
+                if (node.type === "start") ctx.fillText("[시작점]", node.x - 20, node.y + 25);
+                if (node.type === "end") ctx.fillText("[최종 결과]", node.x - 30, node.y + 25);
+            });
+
+            animationFrame = requestAnimationFrame(animateGraph);
+        }
+
+        // 마우스 호버 시 툴팁 및 유저 연산 데이터 표시
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            let foundNode = null;
+            for (let node of nodes) {
+                if (Math.hypot(node.x - mouseX, node.y - mouseY) < 18) {
+                    foundNode = node;
+                    break;
+                }
+            }
+
+            hoveredNode = foundNode;
+
+            if (hoveredNode) {
+                const targets = hoveredNode.connectedTo.length > 0 
+                    ? `다음 연산 계층: ${hoveredNode.connectedTo.join(', ')}` 
+                    : `알고리즘 연산 종료 지점입니다.`;
+                
+                tooltip.innerHTML = `
+                    <h4>${hoveredNode.label}</h4>
+                    <p>${hoveredNode.detail}</p>
+                    <div class="user-metric">👤 유저 데이터: ${hoveredNode.userMetric}</div>
+                    <div class="targets">▶ ${targets}</div>
+                `;
+                
+                let tipX = e.clientX + 15;
+                let tipY = e.clientY + 15;
+                if (tipX + 300 > window.innerWidth) tipX = e.clientX - 320;
+                
+                tooltip.style.left = tipX + 'px';
+                tooltip.style.top = tipY + 'px';
+                tooltip.style.opacity = 1;
+                canvas.style.cursor = 'pointer';
+            } else {
+                tooltip.style.opacity = 0;
+                canvas.style.cursor = 'default';
+            }
+        });
+
+        // 우측 패널 UI 렌더링 및 자동 스크롤 기능
+        function updateInfoPanel(data) {
+            const panel = document.getElementById('infoPanel');
+            let tagsHtml = data.tags.map(t => `<span class="tag">#${t}</span>`).join('');
+            let siteHtml = data.siteInfo.map(info => `<li>${info}</li>`).join('');
+            let userHtml = data.userDataInfo.map(info => `<li>${info}</li>`).join('');
+
+            panel.innerHTML = `
+                <h2>🌐 ${data.title} 완료</h2>
+                <div style="margin-bottom: 20px;">${tagsHtml}</div>
+                
+                <!-- 1번 패널 -->
+                <div class="info-box">
+                    <h3>⚙️ 사용된 알고리즘 뼈대</h3>
+                    <p>${data.algorithm}</p>
+                    <p style="font-size: 13px; color: var(--path-color); margin-top: 10px;">
+                        ※ 그래프 캔버스에서 노드에 마우스를 올리면 세부 정보를 볼 수 있습니다. 밝은 파란색 점선은 최종 도출 경로를 의미합니다.
+                    </p>
+                </div>
+
+                <!-- 2번 패널 -->
+                <div class="info-box">
+                    <h3>📊 서비스 주요 데이터 처리 지표</h3>
+                    <ul>${siteHtml}</ul>
+                </div>
+
+                <!-- 3번 패널 (동적으로 계속 갱신되는 유저 데이터) -->
+                <div class="info-box user-box">
+                    <h3>👤 현 사이트 유저 알고리즘 데이터 조회</h3>
+                    <ul>${userHtml}</ul>
+                </div>
+            `;
+            
+            // 데이터가 새로고침 될 때마다 스크롤을 부드럽게 최상단으로 올려줍니다.
+            panel.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        ctx.fillStyle = "#6272a4";
+        ctx.font = "20px Pretendard";
+        ctx.fillText("상단에 사이트 주소를 입력하고 실행 버튼을 눌러주세요.", 50, canvas.height / 2);
+    </script>
+</body>
+</html>
