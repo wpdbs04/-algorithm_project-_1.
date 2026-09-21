@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>URL 기반 알고리즘 시각화 툴</title>
     <style>
-        /* 모든 요소에 box-sizing 적용 (레이아웃 삐져나옴 방지) */
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
         
         :root {
             --bg-color: #1e1e2e;
@@ -29,7 +26,7 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
-            overflow: hidden; /* 전체 페이지 스크롤 방지 */
+            overflow: hidden; 
         }
         header {
             padding: 20px;
@@ -69,7 +66,7 @@
             display: flex;
             flex: 1;
             position: relative;
-            overflow: hidden; /* 패널 내부 스크롤 활성화를 위한 제한 */
+            overflow: hidden; 
         }
         .canvas-container {
             flex: 2;
@@ -86,11 +83,10 @@
             flex: 1;
             background-color: var(--panel-bg);
             padding: 25px;
-            height: 100%; /* 부모 높이에 맞춤 */
-            overflow-y: auto; /* 내용이 넘치면 세로 스크롤 생성 */
+            height: 100%; 
+            overflow-y: auto; 
         }
         
-        /* 우측 패널 스크롤바 디자인 */
         .info-panel::-webkit-scrollbar { width: 8px; }
         .info-panel::-webkit-scrollbar-thumb { background: #6272a4; border-radius: 4px; }
         .info-panel::-webkit-scrollbar-track { background: var(--panel-bg); }
@@ -103,7 +99,7 @@
             border-left: 4px solid var(--accent);
         }
         .info-box:last-child {
-            margin-bottom: 40px; /* 마지막 여백 확보 */
+            margin-bottom: 40px; 
         }
         .info-box.user-box { border-left-color: var(--user-color); }
         
@@ -119,6 +115,13 @@
             border-radius: 4px;
             font-size: 12px;
             margin: 2px;
+        }
+        .algo-name {
+            font-weight: bold;
+            color: #f1fa8c;
+            font-size: 15px;
+            margin-bottom: 6px;
+            display: block;
         }
 
         #tooltip {
@@ -136,7 +139,7 @@
             max-width: 300px;
             font-size: 13px;
         }
-        #tooltip h4 { margin: 0 0 8px 0; color: var(--highlight); font-size: 15px; }
+        #tooltip h4 { margin: 0 0 8px 0; color: var(--highlight); font-size: 14px; }
         #tooltip p { margin: 4px 0; line-height: 1.4; color: #f8f8f2; }
         .user-metric { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #6272a4; color: var(--user-color); font-weight: bold; }
         #tooltip .targets { margin-top: 8px; font-size: 12px; color: #8be9fd; font-weight: bold; }
@@ -145,7 +148,8 @@
 <body>
 
     <header>
-        <input type="text" id="urlInput" placeholder="예: danawa.com, youtube.com, map.naver.com" value="www.youtube.com">
+        <!-- value="www.youtube.com" 부분을 삭제하여 빈 칸으로 시작되게 수정했습니다 -->
+        <input type="text" id="urlInput" placeholder="예: danawa.com, youtube.com, map.naver.com">
         <button onclick="startSimulation()">알고리즘 시각화 실행</button>
     </header>
 
@@ -188,49 +192,71 @@
             return Math.abs(hash);
         }
 
-        // 사이트 도메인에 맞춰 실시간으로 가상의 최신 유저 데이터를 생성하는 로직
         function generateLiveUserData(domain) {
             const date = new Date();
-            const timeStr = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}.${date.getMilliseconds()}`;
-            const sessionId = "SESS-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+            const timeStr = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 }); 
+            const sessionId = "USER-" + Math.random().toString(36).substring(2, 6).toUpperCase();
             
-            // 도메인 성격에 따른 관심사 풀 동적 할당
             let interestPool = [];
 
             if (domain.includes('youtube.com') || domain.includes('youtu.be')) {
-                interestPool = ["IT/Tech 튜토리얼 영상", "게임 실황 하이라이트", "메카닉/피규어 리뷰", "음악 플레이리스트", "일상 브이로그", "영화 썸네일 클릭", "알고리즘 코딩 테스트"];
+                interestPool = [
+                    "IT/소프트웨어 아키텍처", "게임(RPG) 실황 하이라이트", "메카닉/프라모델 조립 리뷰", "작업용 Lo-Fi 플레이리스트",
+                    "일상 브이로그", "알고리즘 코딩 구현 팁", "오픈월드 게임 스피드런", "영화/드라마 결말 포함 리뷰",
+                    "홈트레이닝/맨몸운동 가이드", "주식/코인 시황 분석", "최신 스마트폰 언박싱", "ASMR/수면 유도 소리",
+                    "K-POP 뮤직비디오 직캠", "캠핑/차박 장비 소개", "역사/미스터리 다큐멘터리", "테크 유튜버 벤치마크"
+                ];
             } else if (domain.includes('cafe.naver') || domain.includes('reddit')) {
-                interestPool = ["게임 공략 게시판 체류", "중고 거래 키워드 알림", "자기계발 스터디 모집글", "취미/수집품 공유글", "유머/베스트글 눈팅", "질문/답변 게시판"];
+                interestPool = [
+                    "게임 공략/메타 데이터", "중고 거래 키워드 알림", "취미생활 소통 게시판", "유머/베스트 트렌드 글",
+                    "질문/답변 게시판(Q&A)", "방구석 데스크셋업 자랑", "MBTI 성향 분석글", "반려동물(강아지/고양이) 사진첩",
+                    "지역 동네 맛집 탐방기", "해외직구 핫딜 정보", "회사원 익명 하소연/이직 고민", "자동차 세차/관리 노하우",
+                    "자기계발 스터디 모집글", "웹소설/웹툰 추천 게시판"
+                ];
             } else if (domain.includes('danawa') || domain.includes('shop') || domain.includes('coupang')) {
-                interestPool = ["최신 CPU/GPU 부품 비교", "스마트폰 악세사리 장바구니", "한정판 피규어/굿즈 검색", "게이밍 기어 특가", "생필품 정기배송", "가전제품 리뷰 확인"];
+                interestPool = [
+                    "최신 CPU/GPU 부품 벤치마크", "스마트폰/노트북 가격 비교", "한정판 피규어 굿즈", "게이밍 기어 특가",
+                    "가전제품 실사용 리뷰", "기계식 무접점 키보드", "32인치 4K 게이밍 모니터", "당일 배송 간편식/밀키트",
+                    "캡슐 커피 머신", "대용량 단백질 보충제", "차박용 텐트 및 캠핑 용품", "노이즈 캔슬링 무선 이어폰",
+                    "게이밍 의자 할인", "스마트홈 IoT 조명"
+                ];
             } else if (domain.includes('map.naver') || domain.includes('maps.google')) {
-                interestPool = ["대학교 캠퍼스 최단 경로", "맛집/카페 방문자 리뷰", "대중교통 버스 도착 시간", "주차장/주유소 위치", "퇴근길 정체 구간 우회", "자전거 도로망"];
+                interestPool = [
+                    "대학교 캠퍼스 진입로", "목적지 근방 맛집/카페", "대중교통 버스 환승 노선", "퇴근길 정체 구간 우회",
+                    "근처 공영 주차장", "주말 드라이브 코스 추천", "심야 영업 24시간 약국", "전기차 급속 충전소 위치",
+                    "애견 동반 가능 식당", "따릉이/공유 킥보드 대여소", "가장 빠른 지하철 하차문 정보", "자전거 전용 도로망"
+                ];
             } else if (domain.includes('github.com')) {
-                interestPool = ["오픈소스 Issue 기여", "Java 아키텍처 레포지토리", "C/C++ 시스템 콜 분석", "웹 프론트엔드 템플릿", "Markdown 문서화", "CI/CD 자동화 파이프라인"];
+                interestPool = [
+                    "오픈소스 Issue 기여", "Java 아키텍처 레포지토리", "시스템 프로그래밍 소스 코드", "나만의 개발 노트(README)",
+                    "Python 데이터 분석 프로젝트", "Docker 컨테이너 배포 스크립트", "Rust 시스템 로우레벨 코딩", "LeetCode 알고리즘 문제 풀이",
+                    "React Native 앱 개발 템플릿", "머신러닝/AI 모델 파라미터 튜닝", "Git Action CI/CD 파이프라인 구축"
+                ];
             } else {
-                interestPool = ["최신 뉴스 트렌드 검색", "IT 기술 동향 아티클", "금융/주식/경제 지표", "라이프스타일 매거진 구독", "일상 블로그 체류", "전문 지식 검색 쿼리"];
+                interestPool = [
+                    "최신 IT 트렌드 기사", "테크 블로그 아티클", "금융/경제 지표 확인", "모르는 정보 쿼리 검색",
+                    "미국 증시 마감 시황", "AI 챗봇 활용법 분석", "주말 날씨 및 미세먼지 예보", "해외 여행 입국 조건 정리",
+                    "연말정산 세금 환급 꿀팁", "부동산 청약/분양 정보", "스타트업 성공 사례 인터뷰"
+                ];
             }
             
-            // 무작위로 섞어 현재 세션 유저의 주요 데이터 2개 추출
             let shuffled = interestPool.sort(() => 0.5 - Math.random());
             let topInterest1 = shuffled[0];
             let topInterest2 = shuffled[1];
             
-            let weight1 = Math.floor(Math.random() * 20 + 80); // 80~99%
-            let weight2 = Math.floor(Math.random() * 30 + 50); // 50~79%
-            let latency = Math.floor(Math.random() * 40 + 10); // 10~50ms
+            let weight1 = Math.floor(Math.random() * 20 + 80); 
+            let weight2 = Math.floor(Math.random() * 30 + 50); 
 
             return {
                 sessionId: sessionId,
                 timeStr: timeStr,
-                locationInfo: `임의 할당 IP (라우팅 홉: ${Math.floor(Math.random() * 5 + 3)} 거침)`,
-                deviceInfo: `Client Device (네트워크 응답: ${latency}ms)`,
-                interestWeights: `1순위 [${topInterest1}] ${weight1}% | 2순위 [${topInterest2}] ${weight2}%`,
-                recentAction: `${Math.floor(Math.random() * 59 + 1)}초 전 마지막 인터랙션(클릭/스크롤) 발생`
+                locationInfo: `클라이언트 디바이스 (네트워크 대기열 핑: ${Math.floor(Math.random() * 20 + 10)}ms)`,
+                deviceInfo: `접속 지역: 대한민국 (ISP 라우팅 경유 완료)`,
+                interestData: `1순위: [${topInterest1}] (매칭률 ${weight1}%) <br/> └ 2순위: [${topInterest2}] (매칭률 ${weight2}%)`,
+                recentAction: `${Math.floor(Math.random() * 59 + 1)}초 전, 상호작용 이벤트(스크롤/클릭) 트리거됨`
             };
         }
 
-        // 절차적 그래프 노드 및 유저 데이터 매핑 생성
         function generateDynamicNodes(domain, hash, liveUser) {
             let seed = hash; 
             function rand() {
@@ -241,15 +267,15 @@
             const layersCount = 3 + Math.floor(rand() * 4);
             const dynamicNodes = [];
             
-            const termsL1 = ["API Gateway", "WAF 방화벽", "Load Balancer", "Edge Server", "Traffic Router"];
-            const termsL2 = ["Session Store", "Microservice A", "Auth Server", "Data Parser", "Query Builder"];
-            const termsL3 = ["Search Engine", "RecSys Model", "DB Aggregator", "Vector DB", "Index Server"];
-            const termsL4 = ["Ranking Logic", "Trend Analyzer", "Content Filter", "Data Formatter", "CDN Cache"];
+            const termsL1 = ["API Gateway (접속 라우터)", "WAF Firewall (보안 방화벽)", "Load Balancer (부하 분산)", "Edge Server (가장자리 서버)"];
+            const termsL2 = ["Session Store (세션 저장)", "Auth Server (권한 검증)", "Data Parser (데이터 파싱)", "Microservice (마이크로서비스)"];
+            const termsL3 = ["Search Engine (검색 엔진)", "RecSys Model (추천 인공지능)", "Vector DB (벡터 데이터베이스)", "Graph DB (관계형 그래프)"];
+            const termsL4 = ["Ranking Logic (순위 산출)", "Trend Analyzer (트렌드 분석)", "Content Filter (콘텐츠 필터링)", "CDN Cache (임시 저장소)"];
 
             dynamicNodes.push({ 
-                layer: 0, label: "Client Req", 
-                detail: `[${domain}] 서버 인바운드 요청 수신`,
-                userMetric: `[세션: ${liveUser.sessionId}] 단말기 초기 접속 핸드쉐이크 요청`
+                layer: 0, label: "Client Req (클라이언트 요청)", 
+                detail: `[${domain}] 서버에 인바운드 패킷(요청)을 보냅니다.`,
+                userMetric: `[세션: ${liveUser.sessionId}] 핸드쉐이크 요청 완료`
             });
 
             for (let l = 1; l < layersCount; l++) {
@@ -259,22 +285,22 @@
                 for (let n = 0; n < nodeCount; n++) {
                     let metricRandom = Math.random();
                     let metricTxt = "";
-                    if (metricRandom < 0.3) metricTxt = `현재 가중치 ${(Math.random() * 0.5 + 0.5).toFixed(2)} 반영 연산 중`;
-                    else if (metricRandom < 0.6) metricTxt = `캐시 메모리 점유율: ${Math.floor(Math.random() * 40 + 10)}% 할당됨`;
-                    else metricTxt = `실시간 트래픽 우선순위 큐(PQ) 처리 중...`;
+                    if (metricRandom < 0.3) metricTxt = `유저 관심사 데이터를 ${(Math.random() * 50 + 50).toFixed(1)}% 병합 연산 중입니다.`;
+                    else if (metricRandom < 0.6) metricTxt = `캐시 적중률(Cache Hit)! 메모리에서 즉시 반환 중.`;
+                    else metricTxt = `우선순위 큐(PQ) 최상단에 할당되어 즉시 처리 중입니다.`;
 
                     dynamicNodes.push({
                         layer: l,
                         label: pool[Math.floor(rand() * pool.length)] + `_${n+1}`,
-                        detail: `${domain} 백엔드 L${l} 계층 트래픽 및 데이터 연산 처리`,
+                        detail: `데이터가 시스템 내부의 [L${l} 연산 계층]을 통과하고 있습니다.`,
                         userMetric: metricTxt
                     });
                 }
             }
             dynamicNodes.push({ 
-                layer: layersCount, label: "Response", 
-                detail: "최종 연산 결과 클라이언트 반환",
-                userMetric: `알고리즘 처리 완료 (소요시간: ${Math.floor(Math.random() * 100 + 20)}ms)`
+                layer: layersCount, label: "Response (결과 반환)", 
+                detail: "연산이 끝난 최종 결과값을 화면(UI)에 렌더링합니다.",
+                userMetric: `응답 완료! (소요 시간: ${Math.floor(Math.random() * 80 + 20)}ms)`
             });
             return dynamicNodes;
         }
@@ -284,64 +310,68 @@
             let domain = lowerUrl.replace(/^https?:\/\//, '').split(/[/?#]/)[0] || "unknown.com";
             const hash = hashCode(domain);
             
-            // 입력된 도메인을 파라미터로 넘겨 알맞은 유저 데이터를 가져옵니다.
             const liveUser = generateLiveUserData(domain);
             
             let profile = {
-                title: "", algorithm: "", tags: [], siteInfo: [], nodesData: [],
+                title: "", algorithmName: "", algorithmDesc: "", tags: [], siteInfo: [], nodesData: [],
                 userDataInfo: [
-                    `<b>실시간 타임스탬프:</b> ${liveUser.timeStr}`,
-                    `<b>할당된 Session ID:</b> ${liveUser.sessionId}`,
-                    `<b>연결 단말기 상태:</b> ${liveUser.locationInfo} <br/> └ ${liveUser.deviceInfo}`,
-                    `<b>알고리즘 가중치 타겟:</b> <br/> └ ${liveUser.interestWeights}`,
-                    `<b>활성도 지표:</b> ${liveUser.recentAction}`
+                    `<b>🕒 실시간 타임스탬프:</b> ${liveUser.timeStr}`,
+                    `<b>🎫 방문자 식별자(Session ID):</b> ${liveUser.sessionId}`,
+                    `<b>📍 접속 환경:</b> ${liveUser.deviceInfo} <br/> └ ${liveUser.locationInfo}`,
+                    `<b>🎯 분석된 관심사 데이터:</b> <br/> └ ${liveUser.interestData}`,
+                    `<b>👀 최근 상호작용:</b> ${liveUser.recentAction}`
                 ]
             };
 
             if (domain.includes('youtube.com') || lowerUrl.includes('youtu.be')) {
-                profile.title = `${domain} (콘텐츠 추천 알고리즘)`;
-                profile.algorithm = "수십억 개의 영상 메타데이터를 처리하는 Two-Tower 추천 모델 (DNN)";
-                profile.tags = ["DNN 추천", "리텐션 최적화", "A/B 테스트"];
+                profile.title = `YouTube (영상 추천 시스템)`;
+                profile.algorithmName = "Two-Tower 심층 신경망(DNN) 추천 모델";
+                profile.algorithmDesc = "수십억 개의 영상 메타데이터(영상 정보)와 사용자의 시청 기록(유저 정보)을 각각의 신경망으로 분석하여, 현재 사용자 취향에 가장 수학적으로 가까운 영상을 매칭해 주는 AI 인공지능 알고리즘입니다.";
+                profile.tags = ["DNN 신경망", "가중치 랭킹", "추천 알고리즘"];
                 profile.siteInfo = [
-                    "<b>후보군 생성 (Candidate Gen):</b> 글로벌 시청 기록을 분석하여 수백만 개 중 연관성 높은 수백 개 영상 1차 추출",
-                    "<b>랭킹 평가 (Ranking):</b> 썸네일 클릭률(CTR), 예상 시청 지속 시간(Retention), 좋아요 비율로 가중치 연산",
-                    "<b>개인화 분산:</b> 특정 주제에 갇히는 필터 버블(Filter Bubble)을 방지하기 위한 탐색적 노이즈 투입"
+                    "<b>🎬 후보군 생성 (Candidate Generation):</b> 전 세계의 수억 개 영상 중에서 유저 벡터(관심사)와 일치하는 수백 개의 영상 풀(Pool)을 1차적으로 추출합니다.",
+                    "<b>⭐ 랭킹 평가 (Ranking):</b> 썸네일 클릭률(CTR), 예상 시청 지속 시간(Retention) 데이터를 바탕으로 각 영상의 최종 추천 우선순위 점수를 매깁니다.",
+                    "<b>🎲 개인화 분산 (Exploration):</b> 확증 편향(Filter Bubble)을 방지하기 위해 사용자가 평소 보지 않던 새로운 주제의 영상을 일부 혼합합니다."
                 ];
             } else if (domain.includes('cafe.naver') || domain.includes('reddit')) {
-                profile.title = `${domain} (커뮤니티 클러스터링)`;
-                profile.algorithm = "텍스트 토픽 모델링(LDA) 및 협업 필터링 기반 게시물 노출 시스템";
-                profile.tags = ["협업 필터링", "토픽 모델링", "트렌드 분석"];
+                profile.title = `커뮤니티 (화제의 글 연결 시스템)`;
+                profile.algorithmName = "토픽 모델링(LDA) 및 협업 필터링(Collaborative Filtering)";
+                profile.algorithmDesc = "사용자와 비슷한 활동 성향을 가진 사람들을 하나의 군집으로 묶어(클러스터링), 해당 군집 내에서 실시간으로 떠오르는 트렌드 키워드와 인기 게시글을 우선적으로 노출하는 알고리즘입니다.";
+                profile.tags = ["협업 필터링", "토픽 모델링", "사용자 군집화"];
                 profile.siteInfo = [
-                    "<b>데이터 수집:</b> 게시글 리젠율, 댓글 활성도, 실시간 조회수 급상승 데이터 집계",
-                    "<b>사용자 반응 분석:</b> 체류 시간 및 사용자 간 상호작용(좋아요) 기반 가중치 부여",
-                    "<b>군집화 모델:</b> 특정 카테고리 유저들의 교차 활동 내역 분석 후 연관 커뮤니티 추천"
+                    "<b>🔥 실시간 트렌드 감지:</b> 특정 게시판의 글 리젠율, 댓글 작성 속도를 계산해 현재 화제가 되고 있는 토픽을 수집합니다.",
+                    "<b>🤝 협업 필터링 (Collaborative):</b> 나와 유사한 글을 읽고 반응한 다른 유저들이, 그 다음에 어떤 글을 클릭했는지 확률을 계산하여 나에게도 추천합니다.",
+                    "<b>⏱️ 체류 시간(Dwell Time) 분석:</b> 제목만 클릭하고 나갔는지(이탈률), 게시글에 오래 머물렀는지를 측정해 진짜 양질의 글을 판별합니다."
                 ];
             } else if (domain.includes('map.naver') || domain.includes('maps.google')) {
-                profile.title = `${domain} (실시간 길찾기)`;
-                profile.algorithm = "도로망 노드 데이터 기반 다익스트라(Dijkstra) 및 A* 경로 탐색";
-                profile.tags = ["다익스트라", "A* 알고리즘", "트래픽 분석"];
+                profile.title = `지도 (실시간 내비게이션 시스템)`;
+                profile.algorithmName = "다익스트라(Dijkstra) 및 A* 최단 경로 탐색 알고리즘";
+                profile.algorithmDesc = "수많은 교차로(노드)와 도로망(간선) 데이터를 바탕으로, 각 도로별 실시간 교통량과 거리를 계산하여 가장 비용(시간)이 적게 드는 최적의 길을 찾아내는 알고리즘입니다.";
+                profile.tags = ["다익스트라", "A* 탐색", "그래프 이론"];
                 profile.siteInfo = [
-                    "<b>교통 트래픽 수집:</b> 실시간 교통 상황 및 이용자 군집 이동 속도를 통한 정체 구간 판단",
-                    "<b>가중치 갱신(Relaxation):</b> 최단 거리, 최소 시간 목표에 따른 간선 가중치 실시간 재계산",
-                    "<b>공간 데이터베이스:</b> 복잡한 교차로 및 노선을 처리하는 지리정보시스템(GIS) 최적화"
+                    "<b>🚗 노드 가중치 수집:</b> 현재 도로에 차량이 얼마나 있는지, 사고 구간은 없는지 실시간 교통 데이터(API)를 수집하여 도로의 '지연 가중치'를 설정합니다.",
+                    "<b>⚡ 최적 경로 갱신(Relaxation):</b> 수천 개의 갈림길 중에서 출발지부터 도착지까지 거쳐가는 경로의 합산 시간이 가장 낮은 루트로 데이터를 갱신합니다.",
+                    "<b>🚶 이동 수단 최적화:</b> 도보, 자동차, 대중교통 등 유저가 선택한 조건에 따라 알고리즘이 탐색하는 간선(Edge)의 기준을 동적으로 변경합니다."
                 ];
             } else if (domain.includes('danawa') || domain.includes('shop') || domain.includes('coupang')) {
-                profile.title = `${domain} (상품 매칭 및 가격 비교)`;
-                profile.algorithm = "분산 검색 엔진(Elasticsearch) 기반 다차원 필터링 및 추천 시스템";
-                profile.tags = ["가격 크롤링", "검색 인덱스", "추천 알고리즘"];
+                profile.title = `쇼핑몰 (다차원 가격 비교 시스템)`;
+                profile.algorithmName = "엘라스틱서치(Elasticsearch) 기반 역색인 검색 알고리즘";
+                profile.algorithmDesc = "수백만 개의 상품 데이터를 제조사, 가격, 스펙 등 다차원으로 분해해 미리 색인(Index)해 두고, 사용자가 원하는 복합 조건에 맞는 결과만 0.1초 만에 걸러내어 보여주는 검색 알고리즘입니다.";
+                profile.tags = ["엘라스틱서치", "역색인 구조", "조건부 필터링"];
                 profile.siteInfo = [
-                    "<b>데이터 크롤링:</b> 오픈마켓 및 벤더사 API 실시간 가격/재고 동기화",
-                    "<b>다차원 인덱싱:</b> 스펙, 가격대별 교차 검색을 위한 역색인(Inverted Index) 구축",
-                    "<b>사용자 리뷰 처리:</b> 자연어 처리(NLP)를 통한 상품 감성 분석(긍정/부정) 랭킹 보정"
+                    "<b>📦 실시간 데이터 동기화:</b> 수많은 오픈마켓 판매자 서버와 통신하여 재고량과 최저가 변동 데이터를 실시간으로 크롤링합니다.",
+                    "<b>🔍 다차원 쿼리(Query) 처리:</b> 유저가 체크한 '브랜드', '가격대', '평점' 등의 교집합(AND 연산) 조건을 고속으로 필터링합니다.",
+                    "<b>💬 자연어 처리(NLP) 랭킹:</b> 구매자들이 남긴 리뷰 텍스트를 긍정/부정으로 분석해 품질 점수(Quality Score)에 합산하여 상위 노출에 반영합니다."
                 ];
             } else {
-                profile.title = `${domain} (네트워크 토폴로지)`;
-                profile.algorithm = "로드 밸런싱 및 마이크로서비스 백엔드 분산 아키텍처";
-                profile.tags = ["로드 밸런싱", "CDN", "마이크로서비스"];
+                profile.title = `${domain} (웹 네트워크 인프라)`;
+                profile.algorithmName = "마이크로서비스 아키텍처(MSA) 및 L7 로드 밸런싱(Load Balancing)";
+                profile.algorithmDesc = "수만 명의 접속 요청이 몰려도 서버가 다운되지 않도록 여러 대의 컴퓨터로 작업을 똑똑하게 분산시키고, 정적 데이터를 효율적으로 배달하는 네트워크 알고리즘입니다.";
+                profile.tags = ["로드 밸런싱", "분산 처리", "마이크로서비스"];
                 profile.siteInfo = [
-                    "<b>트래픽 분산:</b> 입력된 도메인에 대한 대규모 접속 요청을 처리하기 위한 L7 로드 밸런서 동작",
-                    "<b>콘텐츠 전송:</b> 정적 리소스(이미지, CSS 등) 제공을 위한 엣지(Edge) 캐시 서버 분석",
-                    "<b>API 라우팅:</b> 클라이언트 요청 파라미터 기반 마이크로서비스 동적 할당"
+                    "<b>🚦 트래픽 분산 (Load Balancing):</b> 라운드 로빈(Round Robin) 등의 방식을 통해 현재 가장 한가한 서버로 유저의 접속 요청(패킷)을 토스합니다.",
+                    "<b>🚀 CDN 엣지 캐싱:</b> 무거운 이미지나 영상 리소스를 매번 메인 서버에서 가져오지 단고, 유저의 물리적 위치와 가장 가까운 임시 창고(Cache)에서 즉시 꺼내 보여줍니다.",
+                    "<b>🔗 API 라우팅:</b> 로그인, 결제, 검색 등 유저가 누른 버튼의 종류를 분석하여 해당 업무를 담당하는 마이크로서비스 서버망으로 정확하게 연결합니다."
                 ];
             }
             
@@ -349,7 +379,6 @@
             return profile;
         }
 
-        // 시뮬레이션 실행 (클릭 시마다 완전히 새롭게 데이터 및 네트워크 갱신)
         function startSimulation() {
             const url = document.getElementById('urlInput').value;
             if (!url) return;
@@ -390,7 +419,6 @@
                 currentLayerIndex[data.layer]++;
             });
 
-            // 실행할 때마다 랜덤 변수를 추가하여 네트워크 간선 연결을 다르게 구성
             let edgeSeed = hashCode(url) + Math.random(); 
             function edgeRand() {
                 let x = Math.sin(edgeSeed++) * 10000;
@@ -477,15 +505,11 @@
                 ctx.fillStyle = isHovered ? "#ffffff" : "#8ba5b0";
                 ctx.font = isHovered ? "bold 13px Pretendard" : "12px Pretendard";
                 ctx.fillText(node.label, node.x - 30, node.y - 15);
-                
-                if (node.type === "start") ctx.fillText("[시작점]", node.x - 20, node.y + 25);
-                if (node.type === "end") ctx.fillText("[최종 결과]", node.x - 30, node.y + 25);
             });
 
             animationFrame = requestAnimationFrame(animateGraph);
         }
 
-        // 마우스 호버 시 툴팁 및 유저 연산 데이터 표시
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
@@ -503,14 +527,14 @@
 
             if (hoveredNode) {
                 const targets = hoveredNode.connectedTo.length > 0 
-                    ? `다음 연산 계층: ${hoveredNode.connectedTo.join(', ')}` 
-                    : `알고리즘 연산 종료 지점입니다.`;
+                    ? `▶ 데이터 라우팅 대상: ${hoveredNode.connectedTo.join(', ')}` 
+                    : `🏁 이곳이 최종 연산 결과입니다.`;
                 
                 tooltip.innerHTML = `
                     <h4>${hoveredNode.label}</h4>
                     <p>${hoveredNode.detail}</p>
-                    <div class="user-metric">👤 유저 데이터: ${hoveredNode.userMetric}</div>
-                    <div class="targets">▶ ${targets}</div>
+                    <div class="user-metric">👤 처리 중인 데이터: ${hoveredNode.userMetric}</div>
+                    <div class="targets">${targets}</div>
                 `;
                 
                 let tipX = e.clientX + 15;
@@ -527,7 +551,6 @@
             }
         });
 
-        // 우측 패널 UI 렌더링 및 자동 스크롤 기능
         function updateInfoPanel(data) {
             const panel = document.getElementById('infoPanel');
             let tagsHtml = data.tags.map(t => `<span class="tag">#${t}</span>`).join('');
@@ -535,32 +558,32 @@
             let userHtml = data.userDataInfo.map(info => `<li>${info}</li>`).join('');
 
             panel.innerHTML = `
-                <h2>🌐 ${data.title} 완료</h2>
+                <h2>🌐 ${data.title}</h2>
                 <div style="margin-bottom: 20px;">${tagsHtml}</div>
                 
                 <!-- 1번 패널 -->
                 <div class="info-box">
-                    <h3>⚙️ 사용된 알고리즘 뼈대</h3>
-                    <p>${data.algorithm}</p>
-                    <p style="font-size: 13px; color: var(--path-color); margin-top: 10px;">
-                        ※ 그래프 캔버스에서 노드에 마우스를 올리면 세부 정보를 볼 수 있습니다. 밝은 파란색 점선은 최종 도출 경로를 의미합니다.
+                    <h3>⚙️ 알고리즘 종류 및 원리</h3>
+                    <span class="algo-name">${data.algorithmName}</span>
+                    <p style="margin-top:0;">${data.algorithmDesc}</p>
+                    <p style="font-size: 13px; color: var(--path-color); margin-top: 15px;">
+                        ※ 왼쪽 그래프의 노드(동그라미)에 마우스를 올리면 역할망을 볼 수 있습니다. 밝은 파란색 점선은 데이터가 실제로 채택한 핵심 흐름입니다.
                     </p>
                 </div>
 
                 <!-- 2번 패널 -->
                 <div class="info-box">
-                    <h3>📊 서비스 주요 데이터 처리 지표</h3>
+                    <h3>📊 알고리즘 정보 처리 과정</h3>
                     <ul>${siteHtml}</ul>
                 </div>
 
-                <!-- 3번 패널 (동적으로 계속 갱신되는 유저 데이터) -->
+                <!-- 3번 패널 -->
                 <div class="info-box user-box">
                     <h3>👤 현 사이트 유저 알고리즘 데이터 조회</h3>
                     <ul>${userHtml}</ul>
                 </div>
             `;
             
-            // 데이터가 새로고침 될 때마다 스크롤을 부드럽게 최상단으로 올려줍니다.
             panel.scrollTo({ top: 0, behavior: 'smooth' });
         }
         
