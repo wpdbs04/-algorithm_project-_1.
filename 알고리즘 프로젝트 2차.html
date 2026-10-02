@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인터랙티브 알고리즘 시각화 툴 (v12)</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --panel-bg: #1e293b;
+            --panel-border: #334155;
+            --accent-blue: #38bdf8;
+            --accent-indigo: #818cf8;
+            --accent-green: #34d399;
+            --accent-amber: #fbbf24;
+            --accent-rose: #f43f5e;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Header / Control Bar */
+        header {
+            background-color: var(--panel-bg);
+            border-bottom: 1px solid var(--panel-border);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            z-index: 10;
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-badge {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-indigo));
+            color: #0f172a;
+            font-weight: 800;
+            font-size: 0.85rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .url-control-form {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            max-width: 680px;
+        }
+
+        .url-input-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        .url-input {
+            width: 100%;
+            background-color: #0f172a;
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 8px 16px 8px 36px;
+            color: var(--accent-blue);
+            font-size: 0.9rem;
+            font-family: monospace;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .url-input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+        }
+
+        .url-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .btn-run {
+            background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 18px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(56, 189, 248, 0.25);
+        }
+
+        .btn-run:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+
+        .btn-run:active {
+            transform: translateY(0);
+        }
+
+        .quick-chips {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .chip-btn {
+            background: #0f172a;
+            border: 1px solid var(--panel-border);
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chip-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+            background: rgba(56, 189, 248, 0.08);
+        }
+
+        /* Main Workspace Layout */
+        .workspace {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 61px);
+            overflow: hidden;
+        }
+
+        /* Left Graph Visualization Area */
+        .graph-container {
+            flex: 1;
+            background-color: #0b1120;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .graph-header-bar {
+            padding: 12px 20px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 5;
+        }
+
+        .graph-title {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.idle {
+            background-color: var(--accent-amber);
+            box-shadow: 0 0 8px var(--accent-amber);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.85); }
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Placeholder Overlay before execution */
+        .placeholder-box {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at center, rgba(30, 41, 59, 0.5) 0%, rgba(11, 17, 32, 0.95) 100%);
+            z-index: 4;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .placeholder-icon {
+            font-size: 3.5rem;
+            margin-bottom: 16px;
+            opacity: 0.8;
+            filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.3));
+        }
+
+        .placeholder-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .placeholder-desc {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            max-width: 540px;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .placeholder-guide-chips {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .svg-canvas {
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+
+        /* Graph Nodes Styling with Flow Breathing Animation */
+        .node-group {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .node-group:hover .node-rect {
+            stroke-width: 2.5px;
+            filter: drop-shadow(0 0 12px var(--node-color, #38bdf8));
+        }
+
+        .node-rect {
+            fill: #1e293b;
+            stroke-width: 2px;
+            rx: 8px;
+            ry: 8px;
+            transition: all 0.3s ease;
+            animation: pulseBorder 2.5s infinite ease-in-out;
+        }
+
+        @keyframes pulseBorder {
+            0%, 100% {
+                stroke-opacity: 0.5;
+                filter: drop-shadow(0 0 2px transparent);
+            }
+            50% {
+                stroke-opacity: 1;
+                filter: drop-shadow(0 0 8px var(--node-color, #38bdf8));
+            }
+        }
+
+        .node-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-anchor: middle;
+        }
+
+        .node-sub {
+            fill: #94a3b8;
+            font-size: 9px;
+            text-anchor: middle;
+        }
+
+        .link-line {
+            stroke-width: 2px;
+            stroke-dasharray: 6 6;
+            animation: dashFlow 1.5s linear infinite;
+        }
+
+        @keyframes dashFlow {
+            to {
+                stroke-dashoffset: -96;
+            }
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.98);
+            border: 1px solid var(--accent-blue);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            color: #f8fafc;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+            z-index: 100;
+            max-width: 320px;
+            backdrop-filter: blur(8px);
+        }
+
+        .tooltip-header {
+            color: var(--accent-blue);
+            font-weight: 700;
+            font-size: 0.92rem;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tooltip-body {
+            color: #cbd5e1;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+
+        /* Right Analytics Sidebar */
+        .sidebar {
+            width: 390px;
+            background-color: var(--panel-bg);
+            border-left: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-section {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .section-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .info-card {
+            background-color: #0f172a;
+            border: 1px solid rgba(51, 65, 85, 0.6);
+            border-radius: 8px;
+            padding: 12px 14px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.82rem;
+            margin-bottom: 8px;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            color: var(--text-muted);
+        }
+
+        .info-value {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .cat-badge {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-blue);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .tag-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .tag-item {
+            background: rgba(129, 140, 248, 0.12);
+            color: var(--accent-indigo);
+            border: 1px solid rgba(129, 140, 248, 0.25);
+            font-size: 0.72rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .algo-step-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 8px;
+            font-size: 0.78rem;
+            border-left: 2px solid var(--accent-blue);
+            padding-left: 8px;
+        }
+
+        .algo-step-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .algo-step-title {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .log-console {
+            background-color: #0b1120;
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 0.72rem;
+            color: #34d399;
+            height: 120px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .log-time {
+            color: #64748b;
+        }
+
+        .gradient-legend {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: #0f172a;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            border: 1px solid rgba(51, 65, 85, 0.4);
+        }
+
+        .legend-bar {
+            flex: 1;
+            height: 4px;
+            margin: 0 10px;
+            border-radius: 2px;
+            background: linear-gradient(90deg, #38bdf8 0%, #6366f1 33%, #a855f7 66%, #34d399 100%);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+    
+        .btn-copy-summary {
+            width: 100%;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(99, 102, 241, 0.15));
+            border: 1px solid var(--accent-blue);
+            color: var(--text-main);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            margin-top: 10px;
+        }
+
+        .btn-copy-summary:hover {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-indigo));
+            color: #0f172a;
+            border-color: transparent;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+        }
+
+        .btn-copy-summary:active {
+            transform: translateY(0);
+        }
+</style>
+</head>
+<body>
+
+    <!-- Top Control Bar -->
+    <header>
+        <div class="logo-group">
+            <span class="logo-badge">NGINX L7</span>
+            <span class="logo-title">Algorithm Visualization Tool</span>
+        </div>
+
+        <form class="url-control-form" onsubmit="event.preventDefault(); runVisualization();">
+            <div class="url-input-wrapper">
+                <span class="url-icon">🌐</span>
+                <input type="text" id="targetUrlInput" class="url-input" value="" placeholder="수많은 웹사이트 주소 중 하나를 입력해 보세요 (예: https://www.naver.com)...">
+            </div>
+            <button type="button" class="btn-run" onclick="runVisualization()">알고리즘 시각화 실행</button>
+        </form>
+
+        <div class="quick-chips">
+            <button class="chip-btn" onclick="setQuickUrl('https://www.naver.com')">네이버</button>
+            <button class="chip-btn" onclick="setQuickUrl('https://game.naver.com')">네이버게임</button>
+            <button class="chip-btn" onclick="setQuickUrl('https://www.coupang.com')">쿠팡</button>
+            <button class="chip-btn" onclick="setQuickUrl('https://www.youtube.com')">유튜브</button>
+            <button class="chip-btn" onclick="setQuickUrl('https://www.instagram.com')">인스타그램</button>
+            <button class="chip-btn" onclick="setQuickUrl('https://chatgpt.com')">ChatGPT</button>
+        </div>
+    </header>
+
+    <!-- Workspace -->
+    <div class="workspace">
+        
+        <!-- Left: Network Node Graph Visualization -->
+        <div class="graph-container">
+            <div class="graph-header-bar">
+                <div class="graph-title">
+                    <span class="status-dot idle" id="netStatusDot"></span>
+                    <span id="graphTitleText">알고리즘 시각화 네트워크 토폴로지 (대기 중)</span>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">
+                    패킷 스트림: <span id="packetStatus" style="color: var(--accent-amber);">STANDBY</span>
+                </div>
+            </div>
+
+            <!-- Canvas Wrapper -->
+            <div class="canvas-wrapper">
+                <!-- Placeholder Box -->
+                <div class="placeholder-box" id="placeholderOverlay">
+                    <div class="placeholder-icon">⚡</div>
+                    <div class="placeholder-title">알고리즘 시각화 실행 대기 중</div>
+                    <div class="placeholder-desc">
+                        상단 입력창에 분석하고 싶은 웹사이트 URL(주소)을 직접 입력하거나 빠른 버튼을 클릭해 보세요.<br>
+                        사이트마다 구성된 독자적 알고리즘과 백엔드 네트워크 아키텍처가 실시간으로 그래프 표에 생성됩니다.
+                    </div>
+                    <div class="placeholder-guide-chips">
+                        <span class="chip-btn" onclick="setQuickUrl('https://www.naver.com')">검색 포털</span>
+                        <span class="chip-btn" onclick="setQuickUrl('https://www.coupang.com')">E-커머스</span>
+                        <span class="chip-btn" onclick="setQuickUrl('https://www.youtube.com')">미디어 OTT</span>
+                        <span class="chip-btn" onclick="setQuickUrl('https://chatgpt.com')">AI 도구</span>
+                        <span class="chip-btn" onclick="setQuickUrl('https://hometax.go.kr')">정부/공공</span>
+                        <span class="chip-btn" onclick="setQuickUrl('https://upbit.com')">가상자산</span>
+                    </div>
+                </div>
+
+                <!-- SVG Node Canvas -->
+                <svg class="svg-canvas" id="svgGraph" viewBox="0 0 800 500"></svg>
+            </div>
+
+            <!-- Gradient Legend -->
+            <div class="gradient-legend">
+                <span>🔵 요청 시작 (클라이언트)</span>
+                <div class="legend-bar"></div>
+                <span>🟢 결과 반환 (최종 처리 완료)</span>
+            </div>
+
+            <!-- Floating Tooltip -->
+            <div id="graphTooltip" class="tooltip"></div>
+        </div>
+
+        <!-- Right Sidebar: Information & Data Analytics -->
+        <div class="sidebar">
+            
+            <!-- Section 1: Target Info -->
+            <div class="sidebar-section">
+                <div class="section-title">
+                    <span>네트워크 인프라 타깃 정보</span>
+                    <span class="cat-badge" id="netStatusBadge" style="background: rgba(251,191,36,0.15); color: var(--accent-amber); border-color: rgba(251,191,36,0.3);">STANDBY</span>
+                </div>
+                <div class="info-card">
+                    <div class="info-row">
+                        <span class="info-label">타깃 도메인</span>
+                        <span class="info-value" id="sbDomain" style="color: var(--accent-blue);">URL 미입력 (대기 중)</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">응답 지연 (Latency)</span>
+                        <span class="info-value" id="latencyMs" style="color: var(--text-muted);">- ms</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">적용 프로토콜</span>
+                        <span class="info-value">HTTP/2 (TLS 1.3)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Algorithm Workflow & Processing Steps -->
+            <div class="sidebar-section">
+                <div class="section-title">
+                    <span>알고리즘 종류 및 처리 과정</span>
+                </div>
+                <div class="info-card" id="algoWorkflowBox">
+                    <div style="font-size: 0.78rem; color: var(--text-muted); text-align: center; padding: 8px 0;">
+                        URL을 입력하면 특화 알고리즘 처리 단계가 표시됩니다.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: User Interests Analytics v2 -->
+            <div class="sidebar-section" style="flex: 1;">
+                <div class="section-title">
+                    <span>분석된 관심사 데이터 (v2)</span>
+                    <span id="catNameBadge" class="cat-badge">대기 중</span>
+                </div>
+
+                <div class="info-card" style="margin-bottom: 12px;">
+                    <div class="info-label" style="font-size: 0.75rem; margin-bottom: 6px;">도메인 특화 해시태그</div>
+                    <div id="tagCloudBox" class="tag-cloud">
+                        <span class="tag-item" style="color: var(--text-muted); border-color: rgba(148,163,184,0.3);">#분석대기</span>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-label" style="font-size: 0.75rem; margin-bottom: 10px;">상위 점유 관심 지표 (%)</div>
+                    <div id="interestProgressGroup">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 12px 0;">
+                            사이트 접속 시 동적 가중치 분석 결과가 산출됩니다.
+                        </div>
+                    </div>
+                    <button type="button" id="btnCopySummary" class="btn-copy-summary" onclick="copyAnalysisSummary()">
+                        📋 분석 결과 요약 복사
+                    </button>
+                </div>
+            </div>
+
+            <!-- Section 4: Live Logs -->
+            <div class="sidebar-section">
+                <div class="section-title">
+                    <span>실시간 이벤트를 로그 트래킹</span>
+                </div>
+                <div id="logConsole" class="log-console">
+                    <div class="log-entry"><span class="log-time">[00:00:01]</span> System initialized. NGINX L7 Proxy Ready.</div>
+                    <div class="log-entry"><span class="log-time">[00:00:02]</span> Loaded interests-data-v2.js (13 Jusohot Categories).</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Embedded Interests Dataset v2 (Upgraded with 12 Jusohot Categories + IT/Dev) -->
+    <script>
+    const EXTENDED_INTERESTS_DATA = {
+      "categories": {
+        "search_portal": {
+          "name": "검색 포털 / 정보 탐색 / 종합 뉴스",
+          "tags": ["#통합검색", "#실시간트렌드", "#지식인Q&A", "#뉴스스탠드", "#정보파싱"],
+          "top_interests": [
+            { "label": "실시간 이슈 & 뉴스 키워드 점유율", "percentage": 93 },
+            { "label": "통합 검색 쿼리 & 결과 매칭 비중", "percentage": 88 },
+            { "label": "지식인 & 포털 블로그 커뮤니티 탐색", "percentage": 81 },
+            { "label": "학술 및 전문 검색 엔진 활용률", "percentage": 74 }
+          ]
+        },
+        "esports_gaming": {
+          "name": "게이밍 / e스포츠 / 게임 라운지",
+          "tags": ["#네이버게임라운지", "#e스포츠/LoL", "#게이밍커뮤니티", "#게임공략/전적", "#치지직/게임방송"],
+          "top_interests": [
+            { "label": "실시간 게임 라운지 & 커뮤니티 공략 소통", "percentage": 97 },
+            { "label": "e스포츠 경기 중계 & 챔피언/팀 전적 데이터", "percentage": 93 },
+            { "label": "신작 게임 소식 & 공식 라운지 이벤트 참여", "percentage": 88 },
+            { "label": "게이머 소모임 & 치지직/유튜브 게임 방송", "percentage": 83 }
+          ]
+        },
+        "news_media": {
+          "name": "뉴스 / 언론사 / 시사 종합 매체",
+          "tags": ["#주요언론사", "#속보/시사", "#경제/IT", "#방송사라이브", "#기사분석"],
+          "top_interests": [
+            { "label": "실시간 속보 & 시사 정치 이슈 소비", "percentage": 94 },
+            { "label": "경제/IT/사회 분야 전문 기사 탐색", "percentage": 89 },
+            { "label": "언론사 사설 & 기사 댓글 상호작용", "percentage": 82 },
+            { "label": "모바일 뉴스 브라우저 알림 수신율", "percentage": 76 }
+          ]
+        },
+        "media_ott": {
+          "name": "영상 / OTT / 미디어 스트리밍",
+          "tags": ["#오리지널시리즈", "#실시간라이브", "#영화/드라마", "#숏폼/Shorts", "#HLS스트리밍"],
+          "top_interests": [
+            { "label": "딥러닝 기반 개인 맞춤 영상 추천", "percentage": 97 },
+            { "label": "숏폼 챌린지 & 실시간 라이브 스트리밍", "percentage": 92 },
+            { "label": "영화/드라마 오리지널 시리즈 정주행", "percentage": 87 },
+            { "label": "가변 비트레이트(ABR) 고화질 시청비중", "percentage": 84 }
+          ]
+        },
+        "community_forum": {
+          "name": "온라인 커뮤니티 / 포럼 / 직장인 소통",
+          "tags": ["#실시간핫게", "#유머/밈", "#주제별포럼", "#직장인익명", "#소모임"],
+          "top_interests": [
+            { "label": "실시간 인기 유머 밈 & 핫게시글 소비", "percentage": 96 },
+            { "label": "직장인/IT/취미별 관심사 토론 활동", "percentage": 90 },
+            { "label": "집단 지성 정보 공유 & 댓글 상호작용", "percentage": 84 },
+            { "label": "서브컬처 & 소모임 후기 트래픽 비중", "percentage": 78 }
+          ]
+        },
+        "shopping_ecommerce": {
+          "name": "종합 쇼핑 / 오픈마켓 / 해외 직구",
+          "tags": ["#로켓/당일배송", "#협업필터링", "#타임딜/쿠폰", "#해외직구", "#구매후기"],
+          "top_interests": [
+            { "label": "개인 맞춤 상품 추천 & 타임딜 매칭", "percentage": 95 },
+            { "label": "최저가 비교 & 실시간 할인 쿠폰 적용", "percentage": 91 },
+            { "label": "사용자 구매 후기 & 별점 데이터 분석", "percentage": 86 },
+            { "label": "물류 센터 배송 가능 재고 조회 비중", "percentage": 82 }
+          ]
+        },
+        "finance_banking": {
+          "name": "금융 / 뱅킹 / 증권 / 자산 관리",
+          "tags": ["#모바일뱅킹", "#실시간MTS", "#기업공시", "#자산포트폴리오", "#보안인증"],
+          "top_interests": [
+            { "label": "실시간 주가 지수 & 기업 공시 정보", "percentage": 96 },
+            { "label": "모바일 이체 & 자산 배분 포트폴리오", "percentage": 92 },
+            { "label": "거시경제 금리 & 환율 변동성 트래킹", "percentage": 85 },
+            { "label": "금융 보안 토큰 & HSM 인증 트래픽", "percentage": 81 }
+          ]
+        },
+        "education_learning": {
+          "name": "교육 / 온라인 인강 / 공공 도서관",
+          "tags": ["#코딩/IT인강", "#국가공인자격증", "#대학공개강좌", "#학술도서관", "#어학회화"],
+          "top_interests": [
+            { "label": "개발/IT 실무 커리큘럼 온라인 수강", "percentage": 94 },
+            { "label": "국가자격증 & 시험 기출 문제 분석", "percentage": 88 },
+            { "label": "학술 논문 DB & 공공 도서관 자료 검색", "percentage": 82 },
+            { "label": "글로벌 어학 및 비즈니스 회화 학습", "percentage": 77 }
+          ]
+        },
+        "ai_tools": {
+          "name": "생성형 AI / LLM / 머신러닝 도구",
+          "tags": ["#ChatGPT/Gemini", "#LLM프롬프트", "#AI이미지/미디어", "#클로드/퍼플렉시티", "#AI생산성"],
+          "top_interests": [
+            { "label": "대화형 LLM 챗봇 & 업무 자동화 파이프라인", "percentage": 98 },
+            { "label": "AI 이미지/영상/음악 생성 프롬프트", "percentage": 93 },
+            { "label": "학술/코드 분석용 AI 검색 엔진 활용", "percentage": 89 },
+            { "label": "오픈소스 AI 모델 파인튜닝 & API 연동", "percentage": 84 }
+          ]
+        },
+        "webtoon_comic": {
+          "name": "웹툰 / 웹소설 / 만화 플랫폼",
+          "tags": ["#네이버/카카오웹툰", "#정기무료연재", "#웹소설스마트뷰어", "#인기랭킹", "#IP원작"],
+          "top_interests": [
+            { "label": "주간 인기 웹툰/웹소설 정주행 이용률", "percentage": 96 },
+            { "label": "개인 맞춤 장르(판타지/로맨스) 추천", "percentage": 90 },
+            { "label": "정기 회차 선공개 & 쿠키/캐시 결제", "percentage": 85 },
+            { "label": "드라마/영화 원작 웹툰 IP 탐색 비중", "percentage": 79 }
+          ]
+        },
+        "sports_broadcasting": {
+          "name": "스포츠 생중계 / KBO / 해외축구",
+          "tags": ["#KBO/프로야구", "#해외축구/EPL", "#실시간생중계", "#경기하이라이트", "#전력분석"],
+          "top_interests": [
+            { "label": "실시간 프로야구/해외축구 HD 생중계", "percentage": 97 },
+            { "label": "경기 하이라이트 & 선수 기록 통계", "percentage": 91 },
+            { "label": "실시간 스코어 중계 & 문자 중계 클릭률", "percentage": 86 },
+            { "label": "구단별 전력 분석 & 팬 커뮤니티 활동", "percentage": 80 }
+          ]
+        },
+        "government_public": {
+          "name": "정부 / 공공 / 민원 행정 서비스",
+          "tags": ["#공공포털", "#국세청홈택스", "#국민건강보험", "#복지혜택", "#인터넷등기소"],
+          "top_interests": [
+            { "label": "맞춤형 복지 지원금 & 신규 정책 신청", "percentage": 96 },
+            { "label": "민원 서류 발급 & 연말정산 신고 절차", "percentage": 93 },
+            { "label": "부동산/법인 인터넷 등기 & 공공 데이터", "percentage": 87 },
+            { "label": "공공 행정 서비스 모바일 신분증 인증", "percentage": 82 }
+          ]
+        },
+        "crypto_blockchain": {
+          "name": "코인 / 가상자산 / 블록체인",
+          "tags": ["#업비트/빗썸", "#비트코인/알트코인", "#초저지연체결", "#DeFi/Web3", "#온체인데이터"],
+          "top_interests": [
+            { "label": "실시간 가상자산 호가창 & 체결 데이터", "percentage": 98 },
+            { "label": "온체인 트랜잭션 & 글로벌 시황 분석", "percentage": 91 },
+            { "label": "DeFi / 스마트 컨트랙트 매커니즘", "percentage": 85 },
+            { "label": "FDS 이상 거래 탐지 & 가상자산 보안", "percentage": 81 }
+          ]
+        },
+        "it_dev": {
+          "name": "IT / 프로그래밍 / 개발자 오픈소스",
+          "tags": ["#GitHub/GitLab", "#오픈소스라이브러리", "#알고리즘/백준", "#StackOverflow", "#CI/CD"],
+          "top_interests": [
+            { "label": "오픈소스 코드 저장소 & Git 커밋 분석", "percentage": 96 },
+            { "label": "소프트웨어 아키텍처 & 프레임워크 탐색", "percentage": 91 },
+            { "label": "알고리즘 문제 해결 & StackOverflow Q&A", "percentage": 87 },
+            { "label": "CI/CD 자동화 파이프라인 & Cloud 인프라", "percentage": 83 }
+          ]
+        }
+      },
+      "domain_map": {
+        "game.naver.com": "esports_gaming", "game.daum.net": "esports_gaming", "op.gg": "esports_gaming", "inven.co.kr": "esports_gaming", "store.steampowered.com": "esports_gaming", "nexon.com": "esports_gaming", "riotgames.com": "esports_gaming",
+        "comic.naver.com": "webtoon_comic", "webtoon.kakao.com": "webtoon_comic", "page.kakao.com": "webtoon_comic", "lezhin.com": "webtoon_comic", "ridibooks.com": "webtoon_comic", "toptoon.com": "webtoon_comic", "toomics.com": "webtoon_comic", "mrblue.com": "webtoon_comic",
+        "sports.news.naver.com": "sports_broadcasting", "sports.naver.com": "sports_broadcasting", "spotvnow.co.kr": "sports_broadcasting", "kbo.co.kr": "sports_broadcasting", "kleague.com": "sports_broadcasting", "livescore.co.kr": "sports_broadcasting",
+        "chzzk.naver.com": "media_ott", "shopping.naver.com": "shopping_ecommerce", "cafe.naver.com": "community_forum", "blog.naver.com": "community_forum", "stock.naver.com": "finance_banking", "land.naver.com": "finance_banking", "kin.naver.com": "search_portal",
+        "naverpay.com": "finance_banking", "kakaopay.com": "finance_banking", "kakaobank.com": "finance_banking",
+        "naver.com": "search_portal", "daum.net": "search_portal", "google.com": "search_portal", "google.co.kr": "search_portal", "bing.com": "search_portal", "nate.com": "search_portal", "zum.com": "search_portal", "duckduckgo.com": "search_portal", "yahoo.com": "search_portal",
+        "yonhapnews.co.kr": "news_media", "kbs.co.kr": "news_media", "sbs.co.kr": "news_media", "imbc.com": "news_media", "ytn.co.kr": "news_media", "jtbc.co.kr": "news_media", "chosun.com": "news_media", "donga.com": "news_media", "joongang.co.kr": "news_media", "hani.co.kr": "news_media", "khan.co.kr": "news_media", "mk.co.kr": "news_media", "hankyung.com": "news_media", "etnews.com": "news_media", "zdnet.co.kr": "news_media",
+        "netflix.com": "media_ott", "tving.com": "media_ott", "wavve.com": "media_ott", "coupangplay.com": "media_ott", "disneyplus.com": "media_ott", "youtube.com": "media_ott", "sooplive.co.kr": "media_ott", "afreecatv.com": "media_ott", "tiktok.com": "media_ott",
+        "dcinside.com": "community_forum", "fmkorea.com": "community_forum", "clien.net": "community_forum", "ruliweb.com": "community_forum", "theqoo.net": "community_forum", "instiz.net": "community_forum", "ppomppu.co.kr": "community_forum", "blind.com": "community_forum", "everytime.kr": "community_forum", "instagram.com": "community_forum", "facebook.com": "community_forum",
+        "coupang.com": "shopping_ecommerce", "gmarket.co.kr": "shopping_ecommerce", "11st.co.kr": "shopping_ecommerce", "auction.co.kr": "shopping_ecommerce", "ssg.com": "shopping_ecommerce", "aliexpress.com": "shopping_ecommerce", "amazon.com": "shopping_ecommerce", "musinsa.com": "shopping_ecommerce", "oliveyoung.co.kr": "shopping_ecommerce", "daangn.com": "shopping_ecommerce",
+        "kbfg.com": "finance_banking", "shinhan.com": "finance_banking", "toss.im": "finance_banking", "wooribank.com": "finance_banking", "kiwoom.com": "finance_banking", "miraeasset.com": "finance_banking",
+        "ebs.co.kr": "education_learning", "kmooc.kr": "education_learning", "kocw.net": "education_learning", "inflearn.com": "education_learning", "class101.net": "education_learning", "fastcampus.co.kr": "education_learning", "nl.go.kr": "education_learning", "riss.kr": "education_learning",
+        "openai.com": "ai_tools", "chatgpt.com": "ai_tools", "gemini.google.com": "ai_tools", "claude.ai": "ai_tools", "perplexity.ai": "ai_tools", "midjourney.com": "ai_tools", "wrtn.ai": "ai_tools", "huggingface.co": "ai_tools", "kaggle.com": "ai_tools", "runwayml.com": "ai_tools", "suno.com": "ai_tools",
+        "hometax.go.kr": "government_public", "nhis.or.kr": "government_public", "bokjiro.go.kr": "government_public", "iros.go.kr": "government_public", "efine.go.kr": "government_public", "moel.go.kr": "government_public", "wetax.go.kr": "government_public",
+        "upbit.com": "crypto_blockchain", "bithumb.com": "crypto_blockchain", "coinone.co.kr": "crypto_blockchain", "korbit.co.kr": "crypto_blockchain", "gopax.co.kr": "crypto_blockchain", "binance.com": "crypto_blockchain", "coinmarketcap.com": "crypto_blockchain",
+        "github.com": "it_dev", "gitlab.com": "it_dev", "stackoverflow.com": "it_dev", "acmicpc.net": "it_dev", "leetcode.com": "it_dev", "programmers.co.kr": "it_dev"
+      }
+    };
+    </script>
+
+    <!-- App Main Logic -->
+    <script>
+        // Multi-Structural Graph Topology Definitions (Adapted for 13 Jusohot Categories)
+        const TOPOLOGIES = {
+            "esports_gaming": {
+                name: "게이밍 커뮤니티 & e스포츠 전적 플랫폼 (네이버 게임라운지, OP.GG, 인벤 등)",
+                algo_title: "실시간 게임 라운지 피드 & GraphSAGE 게이머 매칭 알고리즘",
+                steps: [
+                    { title: "1단계: 게이머 세션 수신 및 L7 라우팅", desc: "게이머 세션 및 게임별 전용 라운지/카페 클러스터로 요청 분산" },
+                    { title: "2단계: 라이엇/스팀 전적 API & 인게임 데이터 조인", desc: "실시간 티어 전적, 게임 공략 및 라운지 소식 파싱" },
+                    { title: "3단계: 게이머 랭킹 스코어러 & 실시간 피드 반환", desc: "인기 공략, e스포츠 하이라이트 및 친구 라운지 피드 즉시 제공" }
+                ],
+                nodes: [
+                    { id: "n1", title: "클라이언트 요청", sub: "게이머 세션", x: 40, y: 225, color: "#38bdf8", delay: "0s", desc: "유저의 게임 라운지, 커뮤니티 공략 및 전적 조회 세션" },
+                    { id: "n2", title: "NGINX L7 라우터", sub: "게이머 전용 프록시", x: 150, y: 225, color: "#06b6d4", delay: "0.2s", desc: "게이밍 트래픽 보안 종단 및 게임별 서브 라우팅" },
+                    { id: "n3", title: "게임 라운지 DB", sub: "라운지 공략/피드", x: 280, y: 130, color: "#6366f1", delay: "0.4s", desc: "게임별 공식 라운지, 인게임 소식 및 유저 공략 게시글" },
+                    { id: "n4", title: "전적 API 게이트웨이", sub: "라이엇/스팀 API", x: 280, y: 320, color: "#6366f1", delay: "0.4s", desc: "실시간 승률, KDA, 챔피언 티어 및 인게임 파티 전적" },
+                    { id: "n5", title: "e스포츠 랭킹 엔진", sub: "실시간 스코어러", x: 420, y: 130, color: "#a855f7", delay: "0.6s", desc: "e스포츠 리그 실시간 중계 스코어 및 핫클립 스코어링" },
+                    { id: "n6", title: "게이머 소셜 그래프", sub: "GraphSAGE 매처", x: 420, y: 320, color: "#a855f7", delay: "0.6s", desc: "주동시간대 같이 플레이할 듀오/파티 게이머 매칭" },
+                    { id: "n7", title: "게임 스트림 믹서", sub: "치지직/게임방송", x: 550, y: 225, color: "#2dd4bf", delay: "0.8s", desc: "게임 라운지 글 + e스포츠 중계 + 실시간 치지직 방송 결합" },
+                    { id: "n8", title: "최종 결과 반환", sub: "게임라운지 UI", x: 670, y: 225, color: "#34d399", delay: "1.0s", desc: "게이머 맞춤 통합 게임 라운지 UI 피드 제공" }
+                ],
+                links: [
+                    { from: "n1", to: "n2", color: "#38bdf8" },
+                    { from: "n2", to: "n3", color: "#06b6d4" },
+                    { from: "n2", to: "n4", color: "#06b6d4" },
+                    { from: "n3", to: "n5", color: "#6366f1" },
+                    { from: "n4", to: "n6", color: "#6366f1" },
+                    { from: "n5", to: "n7", color: "#a855f7" },
+                    { from: "n6", to: "n7", color: "#a855f7" },
+                    { from: "n7", to: "n8", color: "#2dd4bf" }
+                ]
+            },
+            "search_portal": {
+                name: "포털 / 검색 엔진 (네이버, 구글 등)",
+                algo_title: "Round-Robin L7 라우팅 & TF-IDF 인덱스 랭킹 알고리즘",
+                steps: [
+                    { title: "1단계: 클라이언트 요청 및 Edge L7 라우팅", desc: "NGINX Reverse Proxy가 SSL/TLS를 종단하고 Round-Robin 방식으로 백엔드 분산 노드에 패킷 배정" },
+                    { title: "2단계: 검색 쿼리 파싱 및 인덱스 DB 필터링", desc: "검색어 키워드를 토큰화하고 지식스니펫 및 웹 문서 Vector Store와 실시간 매칭" },
+                    { title: "3단계: 연관 스코어링 & 초저지연 캐시 반환", desc: "사용자 세션 관심사와 실시간 인기 트렌드를 가중 조합하여 서치 결과 및 피드 즉시 반환" }
+                ],
+                nodes: [
+                    { id: "n1", title: "클라이언트 요청", sub: "브라우저 세션", x: 40, y: 225, color: "#38bdf8", delay: "0s", desc: "사용자의 검색 쿼리 및 HTTP/2 웹 요청 발생 지점" },
+                    { id: "n2", title: "NGINX 게이트웨이", sub: "SSL/TLS & 엣지 프록시", x: 150, y: 225, color: "#06b6d4", delay: "0.2s", desc: "SSL 보안 종단 및 DDoS 보호, 정적 캐싱 백엔드 연결" },
+                    { id: "n3", title: "L7 로드 밸런서", sub: "트래픽 분산 라우터", x: 260, y: 225, color: "#6366f1", delay: "0.4s", desc: "Round-Robin 매커니즘을 이용해 MSA 서버군에 트래픽 균등 분산" },
+                    { id: "n4", title: "검색어 토큰 파서", sub: "형태소 분석 엔진", x: 390, y: 110, color: "#818cf8", delay: "0.6s", desc: "입력된 쿼리의 핵심 단어를 수 초 내 추출 및 토큰화" },
+                    { id: "n5", title: "지식 DB & 인덱스", sub: "Vector Store DB", x: 390, y: 225, color: "#818cf8", delay: "0.6s", desc: "수십억 건의 웹 문서 및 인덱스를 임베딩 벡터로 즉시 검색" },
+                    { id: "n6", title: "트렌드 랭킹 엔진", sub: "실시간 인기검색어", x: 390, y: 340, color: "#818cf8", delay: "0.6s", desc: "실시간 검색 트래픽 점유율 및 급상승 키워드 가중치 산출" },
+                    { id: "n7", title: "개인화 추천 알고리즘", sub: "유저 관심사 매처", x: 530, y: 160, color: "#a855f7", delay: "0.8s", desc: "사용자의 과거 검색 세션과 맞춤 콘텐츠 조합" },
+                    { id: "n8", title: "Redis 분산 캐시", sub: "In-Memory Cache", x: 530, y: 290, color: "#2dd4bf", delay: "0.8s", desc: "자주 조회되는 지식인 및 뉴스 결과를 초저지연 캐싱" },
+                    { id: "n9", title: "최종 결과 반환", sub: "검색 결과 스트림", x: 670, y: 225, color: "#34d399", delay: "1.0s", desc: "랭킹 산출이 완료된 웹 포털 통합 검색 페이지 응답 전달" }
+                ],
+                links: [
+                    { from: "n1", to: "n2", color: "#38bdf8" }, { from: "n2", to: "n3", color: "#06b6d4" },
+                    { from: "n3", to: "n4", color: "#6366f1" }, { from: "n3", to: "n5", color: "#6366f1" }, { from: "n3", to: "n6", color: "#6366f1" },
+                    { from: "n4", to: "n7", color: "#818cf8" }, { from: "n5", to: "n7", color: "#818cf8" }, { from: "n6", to: "n8", color: "#818cf8" },
+                    { from: "n7", to: "n9", color: "#a855f7" }, { from: "n8", to: "n9", color: "#2dd4bf" }
+                ]
+            },
+            "news_media": {
+                name: "뉴스 / 언론사 / 시사 종합 매체",
+                algo_title: "속보 파이프라인 & 언론사 실시간 RSS/기사 인덱싱 알고리즘",
+                steps: [
+                    { title: "1단계: 속보 패킷 게이트웨이 및 캐시 수신", desc: "트래픽이 폭증하는 주요 시사 속보 기사를 엣지 CDN 서버에서 1차 수신" },
+                    { title: "2단계: 기사 카테고리 태깅 & 텍스트 요약 NLP", desc: "정치, 경제, IT 등 기사를 NLP 분류기로 분류하고 주요 요약문 추출" },
+                    { title: "3단계: 뉴스 스탠드 렌더링 & Push 알림 배포", desc: "사용자 기사 구독 설정에 맞추어 실시간 헤드라인 기사 반환" }
+                ],
+                nodes: [
+                    { id: "n1", title: "클라이언트 요청", sub: "기사 읽기 세션", x: 40, y: 225, color: "#38bdf8", delay: "0s", desc: "유저의 언론사 헤드라인 기사 클릭 세션" },
+                    { id: "n2", title: "뉴스 CDN 게이트웨이", sub: "기사 정적 캐싱", x: 150, y: 225, color: "#06b6d4", delay: "0.2s", desc: "트래픽 폭주 기사를 CDN In-Memory에 대용량 캐싱" },
+                    { id: "n3", title: "기사 NLP 분류기", sub: "Topic Classifier", x: 280, y: 130, color: "#6366f1", delay: "0.4s", desc: "기사 본문을 파싱하여 시사/경제/IT 카테고리로 분류" },
+                    { id: "n4", title: "속보 텍스트 요약", sub: "Summary Engine", x: 280, y: 320, color: "#6366f1", delay: "0.4s", desc: "긴 뉴스 기사를 3줄 요약 스니펫으로 동적 생성" },
+                    { id: "n5", title: "댓글/반응 분석", sub: "Sentiment Analyzer", x: 420, y: 130, color: "#a855f7", delay: "0.6s", desc: "댓글 데이터의 긍/부정 반응 및 공감 스코어링" },
+                    { id: "n6", title: "관련 기사 연관 매처", sub: "Related Article DB", x: 420, y: 320, color: "#a855f7", delay: "0.6s", desc: "동일 사건 관련 언론사 기사 인덱싱" },
+                    { id: "n7", title: "뉴스 스탠드 믹서", sub: "Newsstand Engine", x: 550, y: 225, color: "#2dd4bf", delay: "0.8s", desc: "구독 언론사 + 속보 기사 종합 편성" },
+                    { id: "n8", title: "최종 결과 반환", sub: "기사 레이아웃 스트림", x: 670, y: 225, color: "#34d399", delay: "1.0s", desc: "실시간 뉴스 기사 및 요약 페이지 반환" }
+                ],
+                links: [
+                    { from: "n1", to: "n2", color: "#38bdf8" }, { from: "n2", to: "n3", color: "#06b6d4" }, { from: "n2", to: "n4", color: "#06b6d4" },
+                    { from: "n3", to: "n5", color: "#6366f1" }, { from: "n4", to: "n6", color: "#6366f1" },
+                    { from: "n5", to: "n7", color: "#a855f7" }, { from: "n6", to: "n7", color: "#a855f7" }, { from: "n7", to: "n8", color: "#2dd4bf" }
+                ]
+            },
+            "shopping_ecommerce": {
+                name: "E-커머스 / 쇼핑 플랫폼 (쿠팡, 11번가 등)",
+                algo_title: "협업 필터링 (Collaborative Filtering) & 실시간 재고 랭킹 알고리즘",
+                steps: [
+                    { title: "1단계: API 게이트웨이 수신 & 트랜잭션 라우팅", desc: "쇼핑몰 유저의 상품 조회 요청 및 장바구니 세션을 MSA 서비스 노드로 분산" },
+                    { title: "2단계: 협업 필터링 추천 & 실시간 재고 조회", desc: "유저의 최근 구매/클릭 이력 기반 아이템 매칭 및 물류 센터 재고 확인" },
+                    { title: "3단계: 타임딜/할인 랭킹 믹서 & 초저지연 응답", desc: "실시간 할인율, 구매 후기 스코어, 물류 거리를 반영하여 상품 카드 생성" }
+                ],
+                nodes: [
+                    { id: "n1", title: "클라이언트 요청", sub: "상품 탐색 세션", x: 40, y: 225, color: "#38bdf8", delay: "0s", desc: "유저의 카테고리 클릭 및 상품 검색 세션" },
+                    { id: "n2", title: "API 게이트웨이", sub: "NGINX Auth & Router", x: 150, y: 225, color: "#06b6d4", delay: "0.2s", desc: "인증 토큰 검증 및 E-커머스 백엔드 라우팅" },
+                    { id: "n3", title: "협업 필터링 추천", sub: "Collaborative Filtering", x: 280, y: 130, color: "#6366f1", delay: "0.4s", desc: "비슷한 취향의 구매자가 함께 산 연관 상품 매칭 알고리즘" },
+                    { id: "n4", title: "물류/재고 DB", sub: "실시간 센터 재고", x: 280, y: 320, color: "#6366f1", delay: "0.4s", desc: "물류 센터별 당일/로켓 배송 가능 수량 실시간 파악" },
+                    { id: "n5", title: "타임딜/할인 매처", sub: "쿠폰 & 가격 엔진", x: 420, y: 130, color: "#a855f7", delay: "0.6s", desc: "유저별 맞춤 쿠폰 적용 및 실시간 최저가 매칭" },
+                    { id: "n6", title: "구매후기 분석기", sub: "NLP 긍정 스코어", x: 420, y: 320, color: "#a855f7", delay: "0.6s", desc: "실제 구매자의 만족도 및 별점 데이터 스코어링" },
+                    { id: "n7", title: "상품 랭킹 믹서", sub: "Personalized Rank", x: 550, y: 225, color: "#2dd4bf", delay: "0.8s", desc: "재고 + 할인율 + 추천도를 조합한 최종 노출 순위 산출" },
+                    { id: "n8", title: "최종 결과 반환", sub: "상품 리스트 스트림", x: 670, y: 225, color: "#34d399", delay: "1.0s", desc: "구매 유도 최적화 상품 리스트 레이아웃 반환" }
+                ],
+                links: [
+                    { from: "n1", to: "n2", color: "#38bdf8" }, { from: "n2", to: "n3", color: "#06b6d4" }, { from: "n2", to: "n4", color: "#06b6d4" },
+                    { from: "n3", to: "n5", color: "#6366f1" }, { from: "n4", to: "n6", color: "#6366f1" },
+                    { from: "n5", to: "n7", color: "#a855f7" }, { from: "n6", to: "n7", color: "#a855f7" }, { from: "n7", to: "n8", color: "#2dd4bf" }
+                ]
+            },
+            "media_ott": {
+                name: "영상 / OTT / 미디어 스트리밍 (유튜브, 틱톡 등)",
+                algo_title: "Deep Neural Network (DNN) 비디오 추천 & HLS 스트리밍 알고리즘",
+                steps: [
+                    { title: "1단계: CDN 엣지 수신 및 세션 핸드셰이크", desc: "지리적으로 가장 가까운 CDN 엣지 서버에서 비디오 재생 요청 수신" },
+                    { title: "2단계: DNN Candidate Generation & Ranking", desc: "수만 개 비디오 중 딥러닝 모델로 Candidate를 추려내고 시청 지속 시간 예측 랭킹" },
+                    { title: "3단계: HLS 청크 파이프라인 & 실시간 패킷 전송", desc: "사용자 네트워크 핑에 따라 가변 화질(ABR) 청크 스트리밍" }
+                ],
+                nodes: [
+                    { id: "n1", title: "클라이언트 요청", sub: "영상 재생 세션", x: 40, y: 225, color: "#38bdf8", delay: "0s", desc: "유저의 비디오 클릭 및 숏폼 스크롤 이벤트" },
+                    { id: "n2", title: "CDN Edge 노드", sub: "초저지연 캐싱 노드", x: 150, y: 225, color: "#06b6d4", delay: "0.2s", desc: "가장 가까운 POP 거점에서의 미디어 패킷 버퍼링" },
+                    { id: "n3", title: "DNN Candidate Gen", sub: "후보군 추출 딥러닝", x: 280, y: 100, color: "#6366f1", delay: "0.4s", desc: "유저의 시청 이력 기반 수천 개 후보 비디오 1차 선정" },
+                    { id: "n4", title: "시청시간 예측 모델", sub: "Deep Neural Rank", x: 280, y: 225, color: "#6366f1", delay: "0.4s", desc: "이 영상의 예상 완료 시청률(Watch Time) 정밀 계산" },
+                    { id: "n5", title: "연관 영상 Graph DB", sub: "추천 비디오 노드", x: 280, y: 350, color: "#6366f1", delay: "0.4s", desc: "다음 자동 재생될 동영상 연관 관계 인덱싱" },
+                    { id: "n6", title: "HLS 가변 비트레이트", sub: "ABR Transcoder", x: 450, y: 160, color: "#a855f7", delay: "0.7s", desc: "사용자 회선 속도에 맞춘 화질 자동 조절" },
+                    { id: "n7", title: "스트림 믹서", sub: "Video Stream Engine", x: 560, y: 225, color: "#2dd4bf", delay: "0.9s", desc: "영상 패킷 + 맞춤 광고 + 자막 데이터 통합" },
+                    { id: "n8", title: "최종 결과 반환", sub: "HLS 비디오 스트림", x: 670, y: 225, color: "#34d399", delay: "1.1s", desc: "끊김 없는 실시간 미디어 재생 스트림 전달" }
+                ],
+                links: [
+                    { from: "n1", to: "n2", color: "#38bdf8" },
+                    { from: "n2", to: "n3", color: "#06b6d4" }, { from: "n2", to: "n4", color: "#06b6d4" }, { from: "n2", to: "n5", color: "#06b6d4" },
+                    { from: "n3", to: "n6", color: "#6366f1" }, { from: "n4", to: "n6", color: "#6366f1" }, { from: "n5", to: "n7", color: "#6366f1" },
+                    { from: "n6", to: "n7", color: "#a855f7" }, { from: "n7", to: "n8", color: "#2dd4bf" }
+                ]
+            },
+            "community_forum": {
+                name: "SNS / 소셜 커뮤니티 (인스타그램, 디시인사이드 등)",
+                algo_title: "GraphSAGE 소셜 그래프 & 다이아몬드 허브 피드 믹싱 알고리즘",
+                steps: [
+                    { title: "1단계: WebSocket / GraphQL 요청 및 인증", desc: "모바일 앱 피드 갱신 요청 수신 및 실시간 커넥션 유지" },
+                    { title: "2단계: 팔로워 소셜 그래프 탐색 & 임베딩", desc: "중앙 GraphSAGE 노드에서 친밀도 스코어 기반 최근 피드/릴스 수집" },
+                    { title: "3단계: 타임라인 인터리빙 & 푸시 알림 연동", desc: "스폰서 피드, 추천 릴스, 친구 소식을 최적비율로 섞어 반환" }
+                ],
+                nodes: [
+                    { id: "n1", title: "클라이언트 요청", sub: "피드 스크롤 세션", x: 40, y: 225, color: "#38bdf8", delay: "0s", desc: "인스타그램 앱/웹 타임라인 스크롤 및 릴스 요청" },
+                    { id: "n2", title: "GraphQL 게이트웨이", sub: "NGINX Edge Router", x: 150, y: 225, color: "#06b6d4", delay: "0.2s", desc: "필요한 소셜 피드 객체만 정밀 쿼리 라우팅" },
+                    { id: "n3", title: "소셜 GraphSAGE", sub: "Central Graph Hub", x: 300, y: 225, color: "#f43f5e", delay: "0.4s", desc: "모든 소셜 이웃 노드가 연결되는 다이아몬드 중앙 허브 노드" },
+                    { id: "n4", title: "팔로워 소셜망", sub: "Friend Node DB", x: 420, y: 110, color: "#a855f7", delay: "0.7s", desc: "맞팔로우 노드 간 상호작용 친밀도 스코어 산출" },
+                    { id: "n5", title: "릴스/스토리 큐", sub: "Media Queue", x: 420, y: 225, color: "#a855f7", delay: "0.7s", desc: "최신 24시간 스토리 및 릴스 버퍼링" },
+                    { id: "n6", title: "스폰서 피드 믹서", sub: "Ad Match Engine", x: 420, y: 340, color: "#a855f7", delay: "0.7s", desc: "유저 타깃팅 광고 및 자연스러운 피드 합성" },
+                    { id: "n7", title: "타임라인 인터리빙", sub: "Personalized Feed", x: 550, y: 225, color: "#2dd4bf", delay: "0.9s", desc: "친구 피드 + 추천 릴스 + 광고 최종 조합" },
+                    { id: "n8", title: "최종 결과 반환", sub: "GraphQL Stream", x: 670, y: 225, color: "#34d399", delay: "1.1s", desc: "동적 그리드 피드 레이아웃 즉시 렌더링" }
+                ],
+                links: [
+                    { from: "n1", to: "n2", color: "#38bdf8" },
+                    { from: "n2", to: "n3", color: "#06b6d4" },
+                    { from: "n3", to: "n4", color: "#f43f5e" }, { from: "n3", to: "n5", color: "#f43f5e" }, { from: "n3", to: "n6", color: "#f43f5e" },
+                    { from: "n4", to: "n7", color: "#a855f7" }, { from: "n5", to: "n7", color: "#a855f7" }, { from: "n6", to: "n7", color: "#a855f7" },
+                    { from: "n7", to: "n8", color: "#2dd4bf" }
+                ]
+            },
+            "finance_banking": {
+                name: "금융 / 뱅킹 / 가상자산 플랫폼 (토스, KB, 업비트 등)",
+                algo_title: "초저지연 체결 엔진 (Matching Engine) & FDS 이상거래 탐지 알고리즘",
+                steps: [
+                    { title: "1단계: API 보안 게이트웨이 & HSM 토큰 검증", desc: "금융 거래 및 시세 요청 시 인증서 토큰 및 HSM 보안 종단 검증" },
+                    { title: "2단계: 실시간 매수/매도 호가 체결 & FDS 탐지", desc: "수십만 TPS 체결 엔진 작동 및 FDS 모듈로 이상 송금/거래 차단" },
+                    { title: "3단계: 원장 DB 동기화 및 실시간 시세 WebSocket 반환", desc: "금융 원장 차변/대변 갱신 및 체결가 실시간 스트리밍" }
+                ],
+                nodes: [
+                    { id: "n1", title: "클라이언트 요청", sub: "송금/호가 주문", x: 40, y: 225, color: "#38bdf8", delay: "0s", desc: "유저의 자금이체, 주식/코인 주문 거래 세션" },
+                    { id: "n2", title: "보안 API Gateway", sub: "HSM Token Auth", x: 150, y: 225, color: "#06b6d4", delay: "0.2s", desc: "금융 전용 암호화 모듈(HSM) 및 E2E 보안 검증" },
+                    { id: "n3", title: "호가 체결 엔진", sub: "Matching Engine", x: 280, y: 130, color: "#6366f1", delay: "0.4s", desc: "수십만 TPS 초저지연 매수/매도 주문 매칭" },
+                    { id: "n4", title: "FDS 탐지 모듈", sub: "Fraud Detection", x: 280, y: 320, color: "#6366f1", delay: "0.4s", desc: "실시간 이상 송금 및 보이스피싱 거래 자동 탐지" },
+                    { id: "n5", title: "금융 원장 DB", sub: "Distributed Ledger", x: 420, y: 130, color: "#a855f7", delay: "0.6s", desc: "잔액 및 거래 이력의 ACID 원자성 보장 기록" },
+                    { id: "n6", title: "WebSocket Push", sub: "실시간 시세 큐", x: 420, y: 320, color: "#a855f7", delay: "0.6s", desc: "체결가 및 호가창 데이터 0.01초 단위 딜리버리" },
+                    { id: "n7", title: "트랜잭션 검증기", sub: "Transaction Verifier", x: 550, y: 225, color: "#2dd4bf", delay: "0.8s", desc: "이체 및 체결 완료 결과 최종 무결성 승인" },
+                    { id: "n8", title: "최종 결과 반환", sub: "Encrypted Response", x: 670, y: 225, color: "#34d399", delay: "1.0s", desc: "자금 이동 및 주문 체결 완료 응답 전송" }
+                ],
+                links: [
+                    { from: "n1", to: "n2", color: "#38bdf8" }, { from: "n2", to: "n3", color: "#06b6d4" }, { from: "n2", to: "n4", color: "#06b6d4" },
+                    { from: "n3", to: "n5", color: "#6366f1" }, { from: "n4", to: "n6", color: "#6366f1" },
+                    { from: "n5", to: "n7", color: "#a855f7" }, { from: "n6", to: "n7", color: "#a855f7" }, { from: "n7", to: "n8", color: "#2dd4bf" }
+                ]
+            },
+            "ai_tools": {
+                name: "생성형 AI / LLM 도구 (ChatGPT, Gemini 등)",
+                algo_title: "LLM Prompt Tokenizer & Transformer 추론 렌더링 알고리즘",
+                steps: [
+                    { title: "1단계: API 요청 수신 & 토큰화(Tokenizer)", desc: "유저의 프롬프트 텍스트를 BPE/WordPiece 토큰 벡터로 분할" },
+                    { title: "2단계: Multi-Head Self-Attention 추론", desc: "Transformer 파라미터 매트릭스를 통해 컨텍스트 주의력 가중치 산출" },
+                    { title: "3단계: SSE 스트리밍 & 실시간 토큰 반환", desc: "생성된 토큰을 Server-Sent Events(SSE) 파이프라인으로 실시간 출력" }
+                ],
+                nodes: [
+                    { id: "n1", title: "클라이언트 프롬프트", sub: "AI 질의 세션", x: 40, y: 225, color: "#38bdf8", delay: "0s", desc: "사용자의 프롬프트 및 컨텍스트 데이터 전달" },
+                    { id: "n2", title: "BPE Tokenizer", sub: "텍스트 토큰화", x: 150, y: 225, color: "#06b6d4", delay: "0.2s", desc: "자연어 문장을 토큰 ID 배열로 빠르게 변환" },
+                    { id: "n3", title: "Self-Attention", sub: "Transformer Core", x: 280, y: 130, color: "#6366f1", delay: "0.4s", desc: "수천억 개 파라미터의 맥락 주의력 연산" },
+                    { id: "n4", title: "Vector DB Retrieval", sub: "RAG 지식 검색", x: 280, y: 320, color: "#6366f1", delay: "0.4s", desc: "최신 지식 및 문서 임베딩 벡터 실시간 병합" },
+                    { id: "n5", title: "KV Cache Engine", sub: "Inference Buffer", x: 420, y: 130, color: "#a855f7", delay: "0.6s", desc: "이전 토큰의 Key/Value 값 캐싱하여 추론 속도 극대화" },
+                    { id: "n6", title: "Safety Guardrail", sub: "안전성 필터", x: 420, y: 320, color: "#a855f7", delay: "0.6s", desc: "유해성 및 시스템 프롬프트 위반 여부 실시간 검증" },
+                    { id: "n7", title: "SSE Stream Pipeline", sub: "Token Streamer", x: 550, y: 225, color: "#2dd4bf", delay: "0.8s", desc: "생성되는 토큰을 글자 단위로 실시간 패킷화" },
+                    { id: "n8", title: "최종 결과 반환", sub: "AI Response Stream", x: 670, y: 225, color: "#34d399", delay: "1.0s", desc: "대화형 AI 답변 스트리밍 응답 완료" }
+                ],
+                links: [
+                    { from: "n1", to: "n2", color: "#38bdf8" }, { from: "n2", to: "n3", color: "#06b6d4" }, { from: "n2", to: "n4", color: "#06b6d4" },
+                    { from: "n3", to: "n5", color: "#6366f1" }, { from: "n4", to: "n6", color: "#6366f1" },
+                    { from: "n5", to: "n7", color: "#a855f7" }, { from: "n6", to: "n7", color: "#a855f7" }, { from: "n7", to: "n8", color: "#2dd4bf" }
+                ]
+            },
+            "webtoon_comic": {
+                name: "웹툰 / 웹소설 플랫폼 (네이버웹툰, 카카오페이지 등)",
+                algo_title: "스마트 이미지 뷰어 타일링 & 장르 랭킹 추천 알고리즘",
+                steps: [
+                    { title: "1단계: 뷰어 회차 요청 및 세션 검증", desc: "유저의 회차 클릭 및 유/무료 이용권 토큰 검증" },
+                    { title: "2단계: 이미지 타일링 CDN 버퍼링 & 장르 ML", desc: "수직 스크롤 컷 이미지를 고속 타일링 캐싱하고 다음 화 추천" },
+                    { title: "3단계: DRM 암호화 해제 & 스마트 스크롤 반환", desc: "이미지 복제 방지 DRM을 해제하고 선공개 스크롤 스트림 생성" }
+                ],
+                nodes: [
+                    { id: "n1", title: "클라이언트 요청", sub: "웹툰 회차 감상", x: 40, y: 225, color: "#38bdf8", delay: "0s", desc: "유저의 회차 클릭 및 수직 스크롤 요청" },
+                    { id: "n2", title: "DRM API Gateway", sub: "이용권 토큰 검증", x: 150, y: 225, color: "#06b6d4", delay: "0.2s", desc: "유무료 쿠키/캐시 이용권 검증 및 암호화 해제" },
+                    { id: "n3", title: "이미지 타일 CDN", sub: "Cut Tiling Cache", x: 280, y: 130, color: "#6366f1", delay: "0.4s", desc: "수직 스크롤 컷 이미지를 분할하여 초고속 버퍼링" },
+                    { id: "n4", title: "장르 선호도 ML", sub: "Genre Recommender", x: 280, y: 320, color: "#6366f1", delay: "0.4s", desc: "판타지/로맨스 등 선호 작품 정주행 패턴 추천" },
+                    { id: "n5", title: "선공개 쿠키 결제", sub: "Micro Payment", x: 420, y: 130, color: "#a855f7", delay: "0.6s", desc: "다음 회차 미리보기 결제 트랜잭션 연동" },
+                    { id: "n6", title: "IP 원작 연관 DB", sub: "Novel/Drama IP", x: 420, y: 320, color: "#a855f7", delay: "0.6s", desc: "웹소설 원작 및 미디어화 관련 작품 인덱싱" },
+                    { id: "n7", title: "뷰어 렌더링 믹서", sub: "Smart Viewer Engine", x: 550, y: 225, color: "#2dd4bf", delay: "0.8s", desc: "컷 이미지 + 댓글 + 추천 회차 레이아웃 합성" },
+                    { id: "n8", title: "최종 결과 반환", sub: "Webtoon Stream", x: 670, y: 225, color: "#34d399", delay: "1.0s", desc: "수직 스크롤 감상 최적화 웹툰 페이지 반환" }
+                ],
+                links: [
+                    { from: "n1", to: "n2", color: "#38bdf8" }, { from: "n2", to: "n3", color: "#06b6d4" }, { from: "n2", to: "n4", color: "#06b6d4" },
+                    { from: "n3", to: "n5", color: "#6366f1" }, { from: "n4", to: "n6", color: "#6366f1" },
+                    { from: "n5", to: "n7", color: "#a855f7" }, { from: "n6", to: "n7", color: "#a855f7" }, { from: "n7", to: "n8", color: "#2dd4bf" }
+                ]
+            },
+            "government_public": {
+                name: "정부 / 공공 / 행정 민원 서비스 (홈택스, 복지로 등)",
+                algo_title: "공공 데이터 무결성 검증 & PKI 모바일 인증 행정 알고리즘",
+                steps: [
+                    { title: "1단계: 모바일 신분증 / PKI 전자서명 인증", desc: "국세청 및 공공 포털 모바일 본인 확인 및 공인인증서 종단" },
+                    { title: "2단계: 행정전산망 DB 조회 & 증명서 PDF 인덱싱", desc: "주민등록/납세/등기 정보 행정 DB와 실시간 동기화" },
+                    { title: "3단계: 위변조 방지 진위 확인 & 전자문서 발급", desc: "워터마크 및 타임스탬프를 적용한 민원 증명서 즉시 반환" }
+                ],
+                nodes: [
+                    { id: "n1", title: "클라이언트 요청", sub: "민원/연말정산", x: 40, y: 225, color: "#38bdf8", delay: "0s", desc: "유저의 주민등록표 등본 및 세금 신고 요청" },
+                    { id: "n2", title: "PKI 보안 게이트웨이", sub: "모바일 신분증 인증", x: 150, y: 225, color: "#06b6d4", delay: "0.2s", desc: "전자서명 및 간편 인증서 무결성 암호 검증" },
+                    { id: "n3", title: "행정전산망 DB", sub: "공공 데이터 연동", x: 280, y: 130, color: "#6366f1", delay: "0.4s", desc: "주민등록, 국세, 건강보험 행정 DB 실시간 조회" },
+                    { id: "n4", title: "복지 지원금 매처", sub: "Welfare Engine", x: 280, y: 320, color: "#6366f1", delay: "0.4s", desc: "유저 자격 조건에 맞는 혜택 및 지원금 필터링" },
+                    { id: "n5", title: "위변조 방지 타임스탬프", sub: "TSA Verification", x: 420, y: 130, color: "#a855f7", delay: "0.6s", desc: "문서 발급 시점 진위확인 2D 바코드 생성" },
+                    { id: "n6", title: "전자문서 지갑", sub: "Digital Wallet Engine", x: 420, y: 320, color: "#a855f7", delay: "0.6s", desc: "모바일 전자증명서 전송 파이프라인" },
+                    { id: "n7", title: "민원 발급 엔진", sub: "Public Document", x: 550, y: 225, color: "#2dd4bf", delay: "0.8s", desc: "PDF 증명서 렌더링 및 암호화 출력" },
+                    { id: "n8", title: "최종 결과 반환", sub: "전자증명서 발급 완료", x: 670, y: 225, color: "#34d399", delay: "1.0s", desc: "공공 민원 서류 및 세금 신고 결과 반환" }
+                ],
+                links: [
+                    { from: "n1", to: "n2", color: "#38bdf8" }, { from: "n2", to: "n3", color: "#06b6d4" }, { from: "n2", to: "n4", color: "#06b6d4" },
+                    { from: "n3", to: "n5", color: "#6366f1" }, { from: "n4", to: "n6", color: "#6366f1" },
+                    { from: "n5", to: "n7", color: "#a855f7" }, { from: "n6", to: "n7", color: "#a855f7" }, { from: "n7", to: "n8", color: "#2dd4bf" }
+                ]
+            },
+            "sports_broadcasting": {
+                name: "스포츠 생중계 / KBO / 해외축구 (쿠팡플레이, SPOTV 등)",
+                algo_title: "초저지연 Live HLS & 실시간 스코어 트래커 알고리즘",
+                steps: [
+                    { title: "1단계: 스포츠 독점 중계 CDN 연결", desc: "프로야구/해외축구 HD 생중계 CDN 거점 서버 수신" },
+                    { title: "2단계: 실시간 스코어 텍스트 중계 & 선수 통계 파싱", desc: "실시간 투구/볼카운트 및 선수 세부 기록을 0.1초 단위 동기화" },
+                    { title: "3단계: 가변 화질 스트리밍 & 숏폼 하이라이트 제공", desc: "네트워크 상태에 맞춘 비트레이트 조절 및 주요 장면 클립 반환" }
+                ],
+                nodes: [
+                    { id: "n1", title: "클라이언트 요청", sub: "스포츠 중계 세션", x: 40, y: 225, color: "#38bdf8", delay: "0s", desc: "KBO/EPL 생중계 및 하이라이트 시청" },
+                    { id: "n2", title: "Live CDN Edge", sub: "Low-Latency Live", x: 150, y: 225, color: "#06b6d4", delay: "0.2s", desc: "0.5초 이내 실시간 미디어 패킷 캐싱" },
+                    { id: "n3", title: "실시간 스코어 DB", sub: "Live Score Tracker", x: 280, y: 130, color: "#6366f1", delay: "0.4s", desc: "볼카운트, 득점, 선수 기록 실시간 동기화" },
+                    { id: "n4", title: "하이라이트 클립퍼", sub: "Auto Clip Generator", x: 280, y: 320, color: "#6366f1", delay: "0.4s", desc: "주요 장면 자동 감지 및 숏폼 비디오 생성" },
+                    { id: "n5", title: "채널 응원톡 큐", sub: "Live Chat Pipeline", x: 420, y: 130, color: "#a855f7", delay: "0.6s", desc: "수십만 명의 실시간 응원 메시지 대기열" },
+                    { id: "n6", title: "ABR Transcoder", sub: "Live Stream Sync", x: 420, y: 320, color: "#a855f7", delay: "0.6s", desc: "모바일/TV 기기별 화질 자동 최적화" },
+                    { id: "n7", title: "스포츠 스트림 믹서", sub: "Media Overlay Engine", x: 550, y: 225, color: "#2dd4bf", delay: "0.8s", desc: "영상 + 실시간 자막/자막 스코어보드 합성" },
+                    { id: "n8", title: "최종 결과 반환", sub: "Live Stream Out", x: 670, y: 225, color: "#34d399", delay: "1.0s", desc: "고화질 스포츠 생중계 스트리밍 반환" }
+                ],
+                links: [
+                    { from: "n1", to: "n2", color: "#38bdf8" }, { from: "n2", to: "n3", color: "#06b6d4" }, { from: "n2", to: "n4", color: "#06b6d4" },
+                    { from: "n3", to: "n5", color: "#6366f1" }, { from: "n4", to: "n6", color: "#6366f1" },
+                    { from: "n5", to: "n7", color: "#a855f7" }, { from: "n6", to: "n7", color: "#a855f7" }, { from: "n7", to: "n8", color: "#2dd4bf" }
+                ]
+            },
+            "education_learning": {
+                name: "교육 / 온라인 인강 / 공공 도서관 (EBS, 인프런 등)",
+                algo_title: "학습 진도율 트래킹 & K-MOOC 강의 인덱싱 알고리즘",
+                steps: [
+                    { title: "1단계: 온라인 수강 요청 및 세션 진도율 검증", desc: "학습자 세션 인증 및 수강 중인 강의 진도율 파라미터 체크" },
+                    { title: "2단계: 강의 영상 스트리밍 & 학습 교재 DB 검색", desc: "HD 인강 영상 버퍼링 및 PDF 강의 교재/기출 문제 연동" },
+                    { title: "3단계: Q&A 질의응답 믹서 & 이수증 발급 반환", desc: "강사 질의응답 및 이수율 달성 시 이수증 발급 반환" }
+                ],
+                nodes: [
+                    { id: "n1", title: "클라이언트 요청", sub: "인강 수강 세션", x: 40, y: 225, color: "#38bdf8", delay: "0s", desc: "유저의 온라인 강의 클릭 및 수강 요청" },
+                    { id: "n2", title: "LMS Auth Gateway", sub: "진도율 트래커", x: 150, y: 225, color: "#06b6d4", delay: "0.2s", desc: "수강생 세션 및 초 단위 진도율 동기화" },
+                    { id: "n3", title: "강의 미디어 CDN", sub: "HD Video Player", x: 280, y: 130, color: "#6366f1", delay: "0.4s", desc: "강의 영상 1080p 고속 스트리밍 버퍼링" },
+                    { id: "n4", title: "학술/자격증 DB", sub: "Course Material Store", x: 280, y: 320, color: "#6366f1", delay: "0.4s", desc: "강의 자막, PDF 교재 및 시험 기출 자료" },
+                    { id: "n5", title: "Q&A 지식 믹서", sub: "Q&A Community", x: 420, y: 130, color: "#a855f7", delay: "0.6s", desc: "강사 및 수강생 질의응답 커뮤니티" },
+                    { id: "n6", title: "이수증/성적 파서", sub: "Completion Verifier", x: 420, y: 320, color: "#a855f7", delay: "0.6s", desc: "수강 완료 기준 충족 여부 가중치 계산" },
+                    { id: "n7", title: "학습 플레이어 믹서", sub: "LMS Player Engine", x: 550, y: 225, color: "#2dd4bf", delay: "0.8s", desc: "영상 + 배속 조절 + 교재 스니펫 종합 출력" },
+                    { id: "n8", title: "최종 결과 반환", sub: "LMS Stream Response", x: 670, y: 225, color: "#34d399", delay: "1.0s", desc: "온라인 수강 플레이어 레이아웃 반환" }
+                ],
+                links: [
+                    { from: "n1", to: "n2", color: "#38bdf8" }, { from: "n2", to: "n3", color: "#06b6d4" }, { from: "n2", to: "n4", color: "#06b6d4" },
+                    { from: "n3", to: "n5", color: "#6366f1" }, { from: "n4", to: "n6", color: "#6366f1" },
+                    { from: "n5", to: "n7", color: "#a855f7" }, { from: "n6", to: "n7", color: "#a855f7" }, { from: "n7", to: "n8", color: "#2dd4bf" }
+                ]
+            },
+            "crypto_blockchain": {
+                name: "코인 / 가상자산 플랫폼 (업비트, 빗썸 등)",
+                algo_title: "초저지연 체결 엔진 (Matching Engine) & FDS 이상거래 탐지 알고리즘",
+                steps: [
+                    { title: "1단계: API 보안 게이트웨이 & HSM 토큰 검증", desc: "금융 거래 및 시세 요청 시 인증서 토큰 및 HSM 보안 종단 검증" },
+                    { title: "2단계: 실시간 매수/매도 호가 체결 & FDS 탐지", desc: "수십만 TPS 체결 엔진 작동 및 FDS 모듈로 이상 송금/거래 차단" },
+                    { title: "3단계: 원장 DB 동기화 및 실시간 시세 WebSocket 반환", desc: "금융 원장 차변/대변 갱신 및 체결가 실시간 스트리밍" }
+                ],
+                nodes: [
+                    { id: "n1", title: "클라이언트 요청", sub: "송금/호가 주문", x: 40, y: 225, color: "#38bdf8", delay: "0s", desc: "유저의 자금이체, 주식/코인 주문 거래 세션" },
+                    { id: "n2", title: "보안 API Gateway", sub: "HSM Token Auth", x: 150, y: 225, color: "#06b6d4", delay: "0.2s", desc: "금융 전용 암호화 모듈(HSM) 및 E2E 보안 검증" },
+                    { id: "n3", title: "호가 체결 엔진", sub: "Matching Engine", x: 280, y: 130, color: "#6366f1", delay: "0.4s", desc: "수십만 TPS 초저지연 매수/매도 주문 매칭" },
+                    { id: "n4", title: "FDS 탐지 모듈", sub: "Fraud Detection", x: 280, y: 320, color: "#6366f1", delay: "0.4s", desc: "실시간 이상 송금 및 보이스피싱 거래 자동 탐지" },
+                    { id: "n5", title: "금융 원장 DB", sub: "Distributed Ledger", x: 420, y: 130, color: "#a855f7", delay: "0.6s", desc: "잔액 및 거래 이력의 ACID 원자성 보장 기록" },
+                    { id: "n6", title: "WebSocket Push", sub: "실시간 시세 큐", x: 420, y: 320, color: "#a855f7", delay: "0.6s", desc: "체결가 및 호가창 데이터 0.01초 단위 딜리버리" },
+                    { id: "n7", title: "트랜잭션 검증기", sub: "Transaction Verifier", x: 550, y: 225, color: "#2dd4bf", delay: "0.8s", desc: "이체 및 체결 완료 결과 최종 무결성 승인" },
+                    { id: "n8", title: "최종 결과 반환", sub: "Encrypted Response", x: 670, y: 225, color: "#34d399", delay: "1.0s", desc: "자금 이동 및 주문 체결 완료 응답 전송" }
+                ],
+                links: [
+                    { from: "n1", to: "n2", color: "#38bdf8" }, { from: "n2", to: "n3", color: "#06b6d4" }, { from: "n2", to: "n4", color: "#06b6d4" },
+                    { from: "n3", to: "n5", color: "#6366f1" }, { from: "n4", to: "n6", color: "#6366f1" },
+                    { from: "n5", to: "n7", color: "#a855f7" }, { from: "n6", to: "n7", color: "#a855f7" }, { from: "n7", to: "n8", color: "#2dd4bf" }
+                ]
+            },
+            "it_dev": {
+                name: "IT / 개발자 오픈소스 (GitHub, StackOverflow 등)",
+                algo_title: "Git Object Graph & 코드 AST 구문 분석 알고리즘",
+                steps: [
+                    { title: "1단계: Git/HTTP 요청 수신 및 L7 라우팅", desc: "코드 커밋, Pull Request 및 저장소 패치 요청 패킷 수신" },
+                    { title: "2단계: AST 구문 트리 파싱 & Blob Storage 연동", desc: "소스코드 구문 분석, 문법 하이라이팅 및 Git Blob 오브젝트 인덱싱" },
+                    { title: "3단계: CI/CD 빌드 파이프라인 연동 및 Diff 반환", desc: "변경 코드 Diff 계산 및 자동화 테스트 파이프라인 트리거" }
+                ],
+                nodes: [
+                    { id: "n1", title: "클라이언트 요청", sub: "Git Push / Web Req", x: 40, y: 225, color: "#38bdf8", delay: "0s", desc: "개발자의 코드 조회 및 Git 커밋 트랜잭션" },
+                    { id: "n2", title: "NGINX Reverse Proxy", sub: "Git Protocol Handler", x: 150, y: 225, color: "#06b6d4", delay: "0.2s", desc: "HTTPS/SSH 커넥션 수신 및 소스 파서 라우팅" },
+                    { id: "n3", title: "AST 코드 파서", sub: "Syntax Analyzer", x: 280, y: 130, color: "#6366f1", delay: "0.4s", desc: "소스코드 문법 트리(AST) 분석 및 하이라이팅" },
+                    { id: "n4", title: "Git Blob Storage", sub: "Object Repository", x: 280, y: 320, color: "#6366f1", delay: "0.4s", desc: "파일 커밋 버전 오브젝트 및 트랙킹 백엔드" },
+                    { id: "n5", title: "Elastic Code Search", sub: "코드 검색 엔진", x: 420, y: 130, color: "#a855f7", delay: "0.6s", desc: "수백만 개 소스코드 함수 및 클래스 고속 탐색" },
+                    { id: "n6", title: "CI/CD Pipeline", sub: "Automation Runner", x: 420, y: 320, color: "#a855f7", delay: "0.6s", desc: "빌드 및 단위 테스트 워크플로우 자동 실행" },
+                    { id: "n7", title: "Code Diff Engine", sub: "변경점 비교 엔진", x: 550, y: 225, color: "#2dd4bf", delay: "0.8s", desc: "파일 변경사항(Diff) 정밀 매칭 및 병합 체크" },
+                    { id: "n8", title: "최종 결과 반환", sub: "Code Stream / JSON", x: 670, y: 225, color: "#34d399", delay: "1.0s", desc: "코드 하이라이팅 및 저장소 페이지 렌더링" }
+                ],
+                links: [
+                    { from: "n1", to: "n2", color: "#38bdf8" }, { from: "n2", to: "n3", color: "#06b6d4" }, { from: "n2", to: "n4", color: "#06b6d4" },
+                    { from: "n3", to: "n5", color: "#6366f1" }, { from: "n4", to: "n6", color: "#6366f1" },
+                    { from: "n5", to: "n7", color: "#a855f7" }, { from: "n6", to: "n7", color: "#a855f7" }, { from: "n7", to: "n8", color: "#2dd4bf" }
+                ]
+            }
+        };
+
+                // Universal Intelligent Subdomain & Path Category Parser
+        function parseUrlCategory(urlInput) {
+            if (!urlInput) return { catKey: "search_portal", cleanUrl: "www.naver.com" };
+            
+            let raw = urlInput.toLowerCase().trim();
+            raw = raw.replace(/^https?:\/\//, '').replace(/^www\./, '');
+            let parts = raw.split('/');
+            let cleanUrl = parts[0];
+            let path = parts.slice(1).join('/');
+            
+            // 1. Exact Hostname Match in domain_map (Subdomain priority)
+            if (EXTENDED_INTERESTS_DATA.domain_map[cleanUrl]) {
+                return { catKey: EXTENDED_INTERESTS_DATA.domain_map[cleanUrl], cleanUrl, raw };
+            }
+
+            // 2. Subdomain Prefix & Path Keyword Matching Rules (BEFORE base domain fallback)
+            const domainSegments = cleanUrl.split('.');
+            const subPrefix = domainSegments.length > 2 ? domainSegments[0] : '';
+            const fullText = (subPrefix + ' ' + path + ' ' + cleanUrl).toLowerCase();
+
+            const keywordRules = [
+                { keywords: ['game', 'gaming', 'esport', 'lounge', 'lol', 'inven', 'opgg', 'steam', 'nexon', 'riot'], cat: 'esports_gaming' },
+                { keywords: ['comic', 'webtoon', 'manga', 'novel', 'toon', 'ridi', 'lezhin'], cat: 'webtoon_comic' },
+                { keywords: ['sports', 'ball', 'soccer', 'baseball', 'kbo', 'kleague', 'spotv', 'score'], cat: 'sports_broadcasting' },
+                { keywords: ['news', 'press', 'times', 'daily', 'post', 'herald', 'journal', 'kbs', 'sbs', 'mbc', 'ytn', 'chosun', 'donga'], cat: 'news_media' },
+                { keywords: ['ott', 'video', 'movie', 'tv', 'stream', 'play', 'chzzk', 'soop', 'afreeca', 'tiktok', 'watch', 'tube', 'youtube'], cat: 'media_ott' },
+                { keywords: ['forum', 'community', 'cafe', 'blog', 'fmkorea', 'dcinside', 'clien', 'ruliweb', 'theqoo', 'blind', 'talk', 'insta', 'fb'], cat: 'community_forum' },
+                { keywords: ['shop', 'shopping', 'store', 'mall', 'buy', 'market', 'deal', 'coupang', 'gmarket', '11st', 'musinsa', 'cart'], cat: 'shopping_ecommerce' },
+                { keywords: ['bank', 'pay', 'invest', 'stock', 'money', 'finance', 'card', 'toss', 'kb', 'shinhan', 'mirae', 'land'], cat: 'finance_banking' },
+                { keywords: ['coin', 'crypto', 'upbit', 'bithumb', 'blockchain', 'token', 'wallet'], cat: 'crypto_blockchain' },
+                { keywords: ['ai', 'gpt', 'gemini', 'claude', 'bot', 'chat', 'llm', 'wrtn'], cat: 'ai_tools' },
+                { keywords: ['edu', 'learn', 'study', 'class', 'mooc', 'school', 'univ', 'inflearn'], cat: 'education_learning' },
+                { keywords: ['gov', 'hometax', 'public', 'tax', 'law', 'nhis', 'bokjiro'], cat: 'government_public' },
+                { keywords: ['git', 'code', 'dev', 'algo', 'stack', 'lab', 'hub', 'api', 'tech'], cat: 'it_dev' }
+            ];
+
+            for (const rule of keywordRules) {
+                if (rule.keywords.some(kw => fullText.includes(kw))) {
+                    return { catKey: rule.cat, cleanUrl, raw };
+                }
+            }
+
+            // 3. Base Domain Fallback
+            const sortedDomains = Object.keys(EXTENDED_INTERESTS_DATA.domain_map).sort((a, b) => b.length - a.length);
+            for (const domain of sortedDomains) {
+                if (cleanUrl.includes(domain)) {
+                    return { catKey: EXTENDED_INTERESTS_DATA.domain_map[domain], cleanUrl, raw };
+                }
+            }
+
+            // 4. Dynamic Custom Category
+            return { catKey: "dynamic_custom", cleanUrl, raw };
+        }
+
+        // Get Topology Key from URL
+        function getTopologyKeyForUrl(url) {
+            const res = parseUrlCategory(url);
+            if (TOPOLOGIES[res.catKey]) {
+                return res.catKey;
+            }
+            return "dynamic_custom";
+        }
+
+        // Get Interests Data for URL
+        function getInterestsForUrl(urlInput) {
+            const res = parseUrlCategory(urlInput);
+            if (res.catKey !== "dynamic_custom" && EXTENDED_INTERESTS_DATA.categories[res.catKey]) {
+                return EXTENDED_INTERESTS_DATA.categories[res.catKey];
+            }
+            
+            // Dynamic Custom Generation for unknown URLs
+            const cleanUrl = res.cleanUrl || "Custom Target";
+            const domainPart = cleanUrl.split('.')[0] || "Custom Target";
+            const capitalizedDomain = domainPart.charAt(0).toUpperCase() + domainPart.slice(1);
+
+            let hash = 0;
+            for (let i = 0; i < cleanUrl.length; i++) {
+                hash = cleanUrl.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const ratio1 = 82 + Math.abs(hash % 15);
+            const ratio2 = 68 + Math.abs((hash >> 2) % 18);
+
+            let dynamicTags = [`#${capitalizedDomain}`, `#사용자_트래픽`, `#알고리즘_매칭`, `#세션_분석`];
+            if (cleanUrl.includes('game')) dynamicTags = [`#${capitalizedDomain}`, `#게이밍`, `#게임라운지`, `#세션_트래픽`];
+            else if (cleanUrl.includes('shop')) dynamicTags = [`#${capitalizedDomain}`, `#쇼핑몰`, `#상품추천`, `#세션_트래픽`];
+            else if (cleanUrl.includes('news')) dynamicTags = [`#${capitalizedDomain}`, `#뉴스속보`, `#기사분석`, `#세션_트래픽`];
+            else if (cleanUrl.includes('pet')) dynamicTags = [`#${capitalizedDomain}`, `#반려동물`, `#펫케어`, `#세션_트래픽`];
+            else if (cleanUrl.includes('food')) dynamicTags = [`#${capitalizedDomain}`, `#맛집/배달`, `#레시피`, `#세션_트래픽`];
+
+            return {
+                name: `${capitalizedDomain} 맞춤 특화 분석`,
+                tags: dynamicTags,
+                top_interests: [
+                    { label: `${capitalizedDomain} 핵심 미디어/콘텐츠 소비율`, percentage: ratio1 },
+                    { label: `관련 서브 세션 탐색 및 상호작용 비중`, percentage: ratio2 },
+                    { label: `네트워크 트래픽 및 엣지 캐시 이용률`, percentage: 61 }
+                ]
+            };
+        }
+
+        // Log Tracker
+        function addLog(msg) {
+            const consoleBox = document.getElementById('logConsole');
+            if (!consoleBox) return;
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.innerHTML = `<span class="log-time">[${timeStr}]</span> ${msg}`;
+            consoleBox.appendChild(div);
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+
+        // Tooltip Control
+        function showNodeTooltip(e, title, desc) {
+            const tooltip = document.getElementById('graphTooltip');
+            if (!tooltip) return;
+            tooltip.innerHTML = `
+                <div class="tooltip-header">📍 ${title}</div>
+                <div class="tooltip-body">${desc}</div>
+            `;
+            tooltip.style.left = (e.clientX + 16) + 'px';
+            tooltip.style.top = (e.clientY + 16) + 'px';
+            tooltip.style.opacity = '1';
+        }
+
+        function hideTooltip() {
+            const tooltip = document.getElementById('graphTooltip');
+            if (tooltip) tooltip.style.opacity = '0';
+        }
+
+        // Quick URL Setter
+        function setQuickUrl(url) {
+            const input = document.getElementById('targetUrlInput');
+            if (input) {
+                input.value = url;
+                runVisualization();
+            }
+        }
+
+        // Render SVG Topology Graph Dynamically
+        function renderTopologyGraph(topoKey, rawUrl) {
+            let topo = TOPOLOGIES[topoKey];
+            if (!topo) {
+                topo = generateDynamicTopology(rawUrl);
+            }
+
+            const svg = document.getElementById('svgGraph');
+            svg.innerHTML = '';
+
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            svg.appendChild(defs);
+
+            // Render Links
+            topo.links.forEach(link => {
+                const sourceNode = topo.nodes.find(n => n.id === link.from);
+                const targetNode = topo.nodes.find(n => n.id === link.to);
+                if (sourceNode && targetNode) {
+                    const x1 = sourceNode.x + 55;
+                    const y1 = sourceNode.y + 24;
+                    const x2 = targetNode.x + 55;
+                    const y2 = targetNode.y + 24;
+
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const dx = Math.abs(x2 - x1) / 2;
+                    const dStr = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+                    
+                    path.setAttribute('d', dStr);
+                    path.setAttribute('class', 'link-line');
+                    path.setAttribute('stroke', link.color || '#38bdf8');
+                    path.setAttribute('fill', 'none');
+                    path.setAttribute('opacity', '0.8');
+                    svg.appendChild(path);
+                }
+            });
+
+            // Render Nodes
+            topo.nodes.forEach(node => {
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('class', 'node-group');
+                g.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+                g.addEventListener('mousemove', (e) => showNodeTooltip(e, node.title, node.desc));
+                g.addEventListener('mouseleave', hideTooltip);
+
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('class', 'node-rect');
+                rect.setAttribute('width', '110');
+                rect.setAttribute('height', '48');
+                rect.setAttribute('stroke', node.color);
+                rect.style.setProperty('--node-color', node.color);
+                rect.style.animationDelay = node.delay || '0s';
+                g.appendChild(rect);
+
+                const textTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                textTitle.setAttribute('class', 'node-title');
+                textTitle.setAttribute('x', '55');
+                textTitle.setAttribute('y', '22');
+                textTitle.style.fill = node.color;
+                textTitle.textContent = node.title;
+                g.appendChild(textTitle);
+
+                const textSub = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                textSub.setAttribute('class', 'node-sub');
+                textSub.setAttribute('x', '55');
+                textSub.setAttribute('y', '37');
+                textSub.textContent = node.sub;
+                g.appendChild(textSub);
+
+                svg.appendChild(g);
+            });
+
+            return topo;
+        }
+
+        // Update Algorithm Workflow Section
+        function updateAlgorithmWorkflow(topo) {
+            const box = document.getElementById('algoWorkflowBox');
+            if (!box) return;
+            
+            let html = `<div style="margin-bottom: 10px; font-weight: 700; color: var(--accent-blue); font-size: 0.82rem;">
+                📌 ${topo.algo_title}
+            </div>`;
+
+            topo.steps.forEach(step => {
+                html += `
+                    <div class="algo-step-item">
+                        <span class="algo-step-title">${step.title}</span>
+                        <span>${step.desc}</span>
+                    </div>
+                `;
+            });
+
+            box.innerHTML = html;
+        }
+
+        // Update Interests UI
+        function updateInterestData(url) {
+            const data = getInterestsForUrl(url);
+
+            const catNameBadge = document.getElementById('catNameBadge');
+            if (catNameBadge) catNameBadge.textContent = data.name;
+
+            const tagCloudBox = document.getElementById('tagCloudBox');
+            if (tagCloudBox) {
+                tagCloudBox.innerHTML = '';
+                data.tags.forEach(tag => {
+                    const span = document.createElement('span');
+                    span.className = 'tag-item';
+                    span.textContent = tag;
+                    tagCloudBox.appendChild(span);
+                });
+            }
+
+            const interestProgressGroup = document.getElementById('interestProgressGroup');
+            if (interestProgressGroup) {
+                interestProgressGroup.innerHTML = '';
+                data.top_interests.forEach(item => {
+                    const wrapper = document.createElement('div');
+                    wrapper.style.marginBottom = '10px';
+                    wrapper.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px; color: #f8fafc;">
+                            <span>${item.label}</span>
+                            <strong style="color: #38bdf8;">${item.percentage}%</strong>
+                        </div>
+                        <div style="height: 6px; background-color: #334155; border-radius: 4px; overflow: hidden;">
+                            <div class="progress-fill" style="height: 100%; background: linear-gradient(90deg, #38bdf8 0%, #818cf8 100%); width: 0%; transition: width 0.8s ease-out;"></div>
+                        </div>
+                    `;
+                    interestProgressGroup.appendChild(wrapper);
+
+                    setTimeout(() => {
+                        const fill = wrapper.querySelector('.progress-fill');
+                        if (fill) fill.style.width = item.percentage + '%';
+                    }, 50);
+                });
+            }
+        }
+
+        // Run Visualization Event
+        
+        // Copy Analysis Summary Report
+        function copyAnalysisSummary() {
+            const sbDomainEl = document.getElementById('sbDomain');
+            const sbDomain = sbDomainEl ? sbDomainEl.textContent : '';
+            const rawUrlInput = document.getElementById('targetUrlInput') ? document.getElementById('targetUrlInput').value.trim() : '';
+
+            if (!rawUrlInput || sbDomain.includes('URL 미입력')) {
+                alert('웹사이트 URL을 입력하고 알고리즘 시각화를 실행한 후 요약을 복사해 주세요.');
+                return;
+            }
+
+            const topoKey = getTopologyKeyForUrl(rawUrlInput);
+            const topo = TOPOLOGIES[topoKey] || (typeof generateDynamicTopology === 'function' ? generateDynamicTopology(rawUrlInput) : TOPOLOGIES["search_portal"]);
+            const data = getInterestsForUrl(rawUrlInput);
+            const latency = document.getElementById('latencyMs') ? document.getElementById('latencyMs').textContent : '- ms';
+
+            const now = new Date();
+            const timeStr = now.getFullYear() + '-' + 
+                            String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                            String(now.getDate()).padStart(2, '0') + ' ' + 
+                            now.toTimeString().split(' ')[0];
+
+            let summaryText = `========================================\n`;
+            summaryText += `📊 [알고리즘 시각화 툴] 분석 결과 리포트 요약\n`;
+            summaryText += `========================================\n\n`;
+            summaryText += `🌐 타깃 도메인: ${sbDomain} (${rawUrlInput})\n`;
+            summaryText += `⏱️ 응답 지연 (Latency): ${latency}\n`;
+            summaryText += `📌 카테고리: ${data.name}\n`;
+            summaryText += `🏷️ 해시태그: ${data.tags.join(' ')}\n\n`;
+
+            summaryText += `----------------------------------------\n`;
+            summaryText += `⚙️ [알고리즘 명칭 & 처리 방식]\n`;
+            summaryText += ` - 알고리즘: ${topo.algo_title}\n`;
+            if (topo.steps && topo.steps.length > 0) {
+                topo.steps.forEach((step, idx) => {
+                    summaryText += ` - ${step.title}: ${step.desc}\n`;
+                });
+            }
+            summaryText += `----------------------------------------\n\n`;
+
+            summaryText += `📈 [상위 점유 관심 지표 (%)]\n`;
+            if (data.top_interests) {
+                data.top_interests.forEach(item => {
+                    summaryText += ` - ${item.label}: ${item.percentage}%\n`;
+                });
+            }
+
+            summaryText += `\n📅 분석 일시: ${timeStr}\n`;
+            summaryText += `========================================`;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(summaryText).then(() => {
+                    showCopyFeedback();
+                }).catch(err => {
+                    fallbackCopyText(summaryText);
+                });
+            } else {
+                fallbackCopyText(summaryText);
+            }
+
+            addLog(`분석 결과 요약 텍스트 클립보드 복사 완료 (${cleanDomain(rawUrlInput)})`);
+        }
+
+        function cleanDomain(url) {
+            let clean = url.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+            return clean || url;
+        }
+
+        function fallbackCopyText(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showCopyFeedback();
+            } catch (err) {
+                alert('복사 중 오류가 발생했습니다.');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function showCopyFeedback() {
+            const btn = document.getElementById('btnCopySummary');
+            if (!btn) return;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '✅ 분석 요약이 복사되었습니다!';
+            btn.style.background = 'linear-gradient(135deg, #34d399, #059669)';
+            btn.style.color = '#0f172a';
+            btn.style.borderColor = '#34d399';
+
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.style.background = '';
+                btn.style.color = '';
+                btn.style.borderColor = '';
+            }, 2200);
+        }
+
+
+        function runVisualization() {
+            const targetUrlInput = document.getElementById('targetUrlInput');
+            const rawUrl = targetUrlInput ? targetUrlInput.value.trim() : '';
+
+            if (!rawUrl) {
+                alert('웹사이트 URL 주소를 입력하거나 빠른 버튼을 눌러주세요.');
+                return;
+            }
+
+            // Hide Placeholder, Show Canvas
+            document.getElementById('placeholderOverlay').style.display = 'none';
+            const svgCanvas = document.getElementById('svgGraph');
+            svgCanvas.style.display = 'block';
+
+            // Status UI Update
+            const netStatusDot = document.getElementById('netStatusDot');
+            netStatusDot.className = 'status-dot';
+            document.getElementById('packetStatus').textContent = 'ACTIVE';
+            document.getElementById('packetStatus').style.color = 'var(--accent-green)';
+
+            const netStatusBadge = document.getElementById('netStatusBadge');
+            netStatusBadge.textContent = 'RUNNING';
+            netStatusBadge.style.background = 'rgba(52,211,153,0.15)';
+            netStatusBadge.style.color = 'var(--accent-green)';
+            netStatusBadge.style.borderColor = 'rgba(52,211,153,0.3)';
+
+            let cleanDomain = rawUrl.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+            if (!cleanDomain) cleanDomain = rawUrl;
+
+            document.getElementById('graphTitleText').textContent = `[${cleanDomain}] 실시간 알고리즘 네트워크 토폴로지`;
+            document.getElementById('sbDomain').textContent = cleanDomain;
+            
+            const simulatedLatency = (10 + Math.random() * 22).toFixed(1);
+            document.getElementById('latencyMs').textContent = `${simulatedLatency} ms`;
+
+            // Topology & Interests Update
+            const topoKey = getTopologyKeyForUrl(rawUrl);
+            const activeTopo = renderTopologyGraph(topoKey, rawUrl);
+            updateAlgorithmWorkflow(activeTopo);
+            updateInterestData(rawUrl);
+
+            // Log Tracker Entry
+            addLog(`Target Specified: [${cleanDomain}]`);
+            addLog(`Topology Rendered: ${activeTopo.name}`);
+            addLog(`Jusohot Interest Pattern Applied for ${rawUrl}`);
+        }
+    </script>
+</body>
+</html>
