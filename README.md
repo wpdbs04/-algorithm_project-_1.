@@ -1,3 +1,5 @@
+# **최종 프로젝트 발표 영상 드라이브 주소: https://drive.google.com/file/d/1GbQc1enpa5KXrM7Ip3nuZyfNr81jsZyY/view?usp=sharing**
+
 # 인터랙티브 알고리즘 시각화 툴 프로젝트
 - 알고리즘 계획서 및, PPT 보고서, HTML 코드는 첨부되어 있습니다!
   참고 부탁드리겠습니다...!
